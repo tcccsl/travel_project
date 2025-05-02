@@ -1,7 +1,9 @@
 <script setup>
   import { ref, onMounted, onUnmounted } from 'vue';
-  import { getItemApi } from '@/api/item';
+  import { getSubCategoryAPI } from '@/api/item';
   import search from '../../components/search.vue';
+  import { useUserStore } from '@/stores/user';
+  import { ElMessage } from 'element-plus';
 
   const itemList = ref([]);
   const page = ref(1);
@@ -17,27 +19,41 @@
   });
 
   // 获取基础列表数据
-  const getItemList = async () => {
+  const getItemListData = async () => {
     try {
-      const res = await getItemApi(reqData.value);
-      itemList.value = res.result.items;
-      console.log(itemList.value);
+      loading.value = true;
+      const res = await getSubCategoryAPI(reqData.value);
+      if (res && res.result) {
+        itemList.value = res.result.items || [];
+        hasMore.value = res.result.items?.length > 0;
+      }
     } catch (error) {
       console.error('获取商品列表失败:', error);
+      ElMessage.error('获取商品列表失败，请稍后重试');
+    } finally {
+      loading.value = false;
     }
   };
-  onMounted(() => getItemList());
 
-  const disabled = ref(false);
+  onMounted(() => getItemListData());
+
   // 加载更多数据
   const load = async () => {
-    // 获取下一页数据
-    reqData.value.page++;
-    const res = await getItemApi(reqData.value);
-    itemList.value = [...itemList.value, ...res.result.items];
-    // 加载完毕，停止监听
-    if (res.result.items.length === 0) {
-      disabled.value = true;
+    if (loading.value || !hasMore.value) return;
+    
+    try {
+      loading.value = true;
+      reqData.value.page++;
+      const res = await getSubCategoryAPI(reqData.value);
+      if (res && res.result) {
+        itemList.value = [...itemList.value, ...(res.result.items || [])];
+        hasMore.value = res.result.items?.length > 0;
+      }
+    } catch (error) {
+      console.error('加载更多数据失败:', error);
+      ElMessage.error('加载更多数据失败，请稍后重试');
+    } finally {
+      loading.value = false;
     }
   };
 
@@ -57,102 +73,115 @@
   onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll);
   });
+
+  const userStore = useUserStore();
 </script>
 
 <template>
-  <div class="container">
-    <search></search>
-    <div class="waterfall-container">
-      <div v-for="item in itemList" :key="item.id" class="waterfall-item">
-        <img v-img-lazy="item.picture" alt="游记图片" class="item-image" />
-        <div class="item-content">
-          <h3 class="item-title">{{ item.name }}</h3>
-          <div class="user-info">
-            <img v-img-lazy="item.userAvatar" alt="用户头像" class="user-avatar" />
-            <span class="user-nickname">{{ item.userNickname }}</span>
+  <div class="home-container">
+    <div class="container">
+      <search></search>
+      <div class="waterfall-container">
+        <div v-for="item in itemList" :key="item.id" class="waterfall-item">
+          <img v-img-lazy="item.picture" alt="游记图片" class="item-image" />
+          <div class="item-content">
+            <h3 class="item-title">{{ item.name }}</h3>
+            <div class="user-info">
+              <img :src="item.userAvatar || userStore.DEFAULT_AVATAR" alt="用户头像" class="user-avatar" />
+              <span class="user-nickname">{{ item.userNickname }}</span>
+            </div>
           </div>
         </div>
+        <p v-if="loading" class="loading-text">加载中...</p>
+        <p v-if="!hasMore && !loading" class="no-more-text">没有更多数据了</p>
       </div>
-      <p v-if="loading" class="loading-text">加载中...</p>
-      <p v-if="!hasMore" class="no-more-text">没有更多数据了</p>
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-  .container {
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    transition: all 0.5s ease-in-out;
-  }
+.home-container {
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  transition: all 0.5s ease-in-out;
+  margin-top: 0;
+}
 
-  .waterfall-container {
-    column-count: 2;
-    column-gap: 16px;
-    padding: 16px;
-  }
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  box-sizing: border-box;
+  transition: all 0.5s ease-in-out;
+}
 
-  .waterfall-item {
-    display: inline-block;
-    width: 100%;
-    margin-bottom: 16px;
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
-    
-    &:active {
-      transform: translateY(-5px);
-    }
-  }
+.waterfall-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+}
 
-  .item-image {
-    width: 100%;
-    object-fit: cover;
+.waterfall-item {
+  width: calc(50% - 16px);
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  
+  &:active {
+    transform: translateY(-5px);
   }
+}
 
-  .item-content {
-    padding: 12px;
-  }
+.item-image {
+  width: 100%;
+  object-fit: cover;
+}
 
-  .item-title {
-    font-size: 18px;
-    margin-bottom: 12px;
-    font-weight: bold;
-    color: #333;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
+.item-content {
+  padding: 12px;
+}
 
-  .user-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.item-title {
+  font-size: 18px;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
-  }
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  .user-nickname {
-    font-size: 14px;
-    color: #666;
-  }
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
 
-  .loading-text,
-  .no-more-text {
-    text-align: center;
-    width: 100%;
-    margin: 16px 0;
-    font-size: 14px;
-    color: #999;
-  }
+.user-nickname {
+  font-size: 14px;
+  color: #666;
+}
+
+.loading-text,
+.no-more-text {
+  text-align: center;
+  width: 100%;
+  margin: 16px 0;
+  font-size: 14px;
+  color: #999;
+}
 </style>
