@@ -1,0 +1,35 @@
+{
+	"pages": [
+		{
+			"path": "pages/Home/Home",
+			"style": {
+				"navigationBarTitleText": "Travel Diary"
+			}
+		},
+		{
+			"path": "pages/DiaryDetail/DiaryDetail",
+			"style": {
+				"navigationBarTitleText": "Diary Details"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "Travel Diary",
+		"navigationBarBackgroundColor": "#3B82F6",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"color": "#7A7E83",
+		"selectedColor": "#3B82F6",
+		"backgroundColor": "#FFFFFF",
+		"list": [
+			{
+				"pagePath": "pages/Home/Home",
+				"text": "Home",
+				"iconPath": "static/icons/home.png",
+				"selectedIconPath": "static/icons/home-active.png"
+			}
+		]
+	}
+}
