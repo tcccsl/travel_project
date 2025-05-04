@@ -2,103 +2,102 @@ import { defineStore } from 'pinia';
 import api from '../services/api';
 
 export const useUserStore = defineStore('user', {
-  state: () => ({
-    user: null,
-    token: null,
-    isLoggedIn: false,
-    loading: false,
-    error: null
-  }),
+  state: () => {
+    // 从持久化存储初始化状态
+    const token = uni.getStorageSync('user_token') || null;
+    const userInfo = uni.getStorageSync('user_info') || null;
+    
+    return {
+      token: token,
+      username: userInfo ? userInfo.username : null,
+      nickname: userInfo ? userInfo.nickname : null,
+      avatar: userInfo ? userInfo.avatar : null,
+      userId: userInfo ? userInfo.id : null
+    };
+  },
   
   getters: {
-    // Get current user
-    currentUser: (state) => state.user,
+    // 检查用户是否已登录
+    isAuthenticated: (state) => !!state.token,
     
-    // Check if user is authenticated
-    isAuthenticated: (state) => state.isLoggedIn && !!state.token
+    // 获取用户完整信息
+    user: (state) => {
+      if (!state.username) return null;
+      
+      return {
+        id: state.userId,
+        username: state.username,
+        nickname: state.nickname,
+        avatar: state.avatar
+      };
+    }
   },
   
   actions: {
-    // Login user
-    async login(credentials) {
-      this.loading = true;
-      this.error = null;
+    // 设置用户信息
+    setUser(userData) {
+      if (!userData) return;
       
+      this.token = userData.token || this.token;
+      this.username = userData.user?.username || userData.username || this.username;
+      this.nickname = userData.user?.nickname || userData.nickname || this.nickname;
+      this.avatar = userData.user?.avatar || userData.avatar || this.avatar;
+      this.userId = userData.user?.id || userData.id || this.userId;
+      
+      // 持久化存储
+      uni.setStorageSync('user_token', this.token);
+      uni.setStorageSync('user_info', {
+        id: this.userId,
+        username: this.username,
+        nickname: this.nickname,
+        avatar: this.avatar
+      });
+    },
+    
+    // 清除用户信息
+    clearUser() {
+      this.token = null;
+      this.username = null;
+      this.nickname = null;
+      this.avatar = null;
+      this.userId = null;
+      
+      // 清除持久化存储
+      uni.removeStorageSync('user_token');
+      uni.removeStorageSync('user_info');
+    },
+    
+    // 登录用户
+    async login(credentials) {
       try {
         const response = await api.users.login(credentials);
-        this.setUserData(response.data);
+        this.setUser(response.data);
         return response;
       } catch (error) {
-        this.error = error.response?.data?.message || 'Login failed';
         throw error;
-      } finally {
-        this.loading = false;
       }
     },
     
-    // Register user
-    async register(userData) {
-      this.loading = true;
-      this.error = null;
-      
-      try {
-        const response = await api.users.register(userData);
-        this.setUserData(response.data);
-        return response;
-      } catch (error) {
-        this.error = error.response?.data?.message || 'Registration failed';
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    // Get user profile
-    async fetchUserProfile() {
-      if (!this.token) return;
-      
-      this.loading = true;
-      
-      try {
-        const response = await api.users.getProfile();
-        this.user = response.data;
-        return response;
-      } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to fetch profile';
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    // Set user data after successful authentication
-    setUserData(data) {
-      this.user = data.user;
-      this.token = data.token;
-      this.isLoggedIn = true;
-      
-      // Save token to localStorage
-      uni.setStorageSync('token', data.token);
-    },
-    
-    // Logout user
+    // 登出用户
     logout() {
-      this.user = null;
-      this.token = null;
-      this.isLoggedIn = false;
+      this.clearUser();
       
-      // Remove token from localStorage
-      uni.removeStorageSync('token');
+      // 同时清理相关的游记缓存数据
+      uni.removeStorageSync('home_diaries_cache');
+      uni.removeStorageSync('my_diaries_cache');
+      uni.removeStorageSync('current_diary');
+      uni.removeStorageSync('diary_detail_cache_');
     },
     
-    // Initialize store with saved token
-    init() {
-      const token = uni.getStorageSync('token');
-      if (token) {
-        this.token = token;
-        this.isLoggedIn = true;
-        this.fetchUserProfile().catch(() => this.logout());
-      }
+    // 更新用户信息
+    updateUserInfo(userInfo) {
+      const data = {
+        user: {
+          ...this.user,
+          ...userInfo
+        }
+      };
+      this.setUser(data);
     }
   }
 }); 

@@ -78,7 +78,9 @@ export default {
       limit: 10,
       hasMore: true,
       keyword: '',
-      searchTimer: null
+      searchTimer: null,
+      cacheKey: 'home_diaries_cache',
+      cacheExpiration: 5 * 60 * 1000
     }
   },
   computed: {
@@ -91,21 +93,14 @@ export default {
     }
   },
   onLoad() {
-    // Try to load cached data first
-    const cachedData = uni.getStorageSync('diaries_cache');
-    if (cachedData) {
-      try {
-        const parsedData = JSON.parse(cachedData);
-        this.diaries = parsedData.diaries || [];
-        this.page = parsedData.page || 1;
-        this.hasMore = parsedData.hasMore || true;
-      } catch (e) {
-        console.error('Failed to parse cached data:', e);
-      }
-    }
+    // 清除可能存在的旧式缓存数据
+    uni.removeStorageSync('diaries_cache');
     
-    // Always fetch fresh data
-    this.fetchDiaries();
+    // 加载新的缓存数据
+    this.loadCachedData();
+    
+    // 始终获取最新数据
+    this.refreshData();
   },
   onPullDownRefresh() {
     this.refreshData();
@@ -116,12 +111,38 @@ export default {
     }
   },
   methods: {
+    // 加载缓存数据
+    loadCachedData() {
+      try {
+        const cachedData = uni.getStorageSync(this.cacheKey);
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData);
+          
+          // 检查缓存是否过期
+          const now = Date.now();
+          if (parsedData.timestamp && (now - parsedData.timestamp < this.cacheExpiration)) {
+            this.diaries = parsedData.diaries || [];
+            this.page = parsedData.page || 1;
+            this.hasMore = parsedData.hasMore !== undefined ? parsedData.hasMore : true;
+            console.log('Loaded cached home diaries data');
+          } else {
+            // 缓存已过期，清除
+            console.log('Home diaries cache expired');
+            uni.removeStorageSync(this.cacheKey);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse cached home data:', e);
+        uni.removeStorageSync(this.cacheKey);
+      }
+    },
+    
     // Fetch diaries from API
     async fetchDiaries() {
       if (this.loading) return;
       
       this.loading = true;
-      
+
       try {
         const response = await api.diaries.getAll({
           page: this.page,
@@ -205,9 +226,9 @@ export default {
           timestamp: Date.now()
         };
         
-        uni.setStorageSync('diaries_cache', JSON.stringify(cacheData));
+        uni.setStorageSync(this.cacheKey, JSON.stringify(cacheData));
       } catch (e) {
-        console.error('Failed to cache data:', e);
+        console.error('Failed to cache home data:', e);
       }
     }
   }

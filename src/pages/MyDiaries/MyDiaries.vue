@@ -23,7 +23,7 @@
     <view class="content">
       <!-- Diary List -->
       <view class="diary-list" v-if="diaries.length > 0">
-        <view class="diary-item" v-for="diary in diaries" :key="diary.id">
+        <view class="diary-item" v-for="diary in diaries" :key="diary.id" @click="viewDiary(diary.id)">
           <view class="diary-info">
             <text class="diary-title">{{ diary.title }}</text>
             <view :class="['status-badge', getStatusClass(diary.status)]">
@@ -42,11 +42,11 @@
             <view 
               class="action-button edit" 
               v-if="diary.status === 'pending' || diary.status === 'rejected'"
-              @click="editDiary(diary.id)"
+              @click.stop="editDiary(diary.id)"
             >
               <text class="button-text">编辑</text>
             </view>
-            <view class="action-button delete" @click="confirmDelete(diary.id)">
+            <view class="action-button delete" @click.stop="confirmDelete(diary.id)">
               <text class="button-text">删除</text>
             </view>
           </view>
@@ -81,7 +81,9 @@ export default {
     return {
       diaries: [],
       loading: false,
-      error: null
+      error: null,
+      cacheKey: 'my_diaries_cache',
+      cacheExpiration: 5 * 60 * 1000
     }
   },
   computed: {
@@ -90,7 +92,6 @@ export default {
     }
   },
   onLoad() {
-    // Check if user is authenticated
     if (!this.userStore.token) {
       uni.redirectTo({
         url: '/pages/Login/Login'
@@ -98,25 +99,37 @@ export default {
       return;
     }
     
-    // Try to load cached data first
-    const cachedData = uni.getStorageSync('my_diaries_cache');
-    if (cachedData) {
-      try {
-        const parsedData = JSON.parse(cachedData);
-        this.diaries = parsedData.diaries || [];
-      } catch (e) {
-        console.error('Failed to parse cached data:', e);
-      }
-    }
+    uni.removeStorageSync('my_diaries_cache');
     
-    // Fetch fresh data
+    this.loadCachedData();
+    
     this.fetchMyDiaries();
   },
   onPullDownRefresh() {
     this.fetchMyDiaries();
   },
   methods: {
-    // Fetch user's diaries
+    loadCachedData() {
+      try {
+        const cachedData = uni.getStorageSync(this.cacheKey);
+        if (cachedData) {
+          const parsedData = JSON.parse(cachedData);
+          
+          const now = Date.now();
+          if (parsedData.timestamp && (now - parsedData.timestamp < this.cacheExpiration)) {
+            this.diaries = parsedData.diaries || [];
+            console.log('Loaded cached my diaries data');
+          } else {
+            console.log('My diaries cache expired');
+            uni.removeStorageSync(this.cacheKey);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse cached my diaries data:', e);
+        uni.removeStorageSync(this.cacheKey);
+      }
+    },
+    
     async fetchMyDiaries() {
       this.loading = true;
       
@@ -124,7 +137,6 @@ export default {
         const response = await api.diaries.getMine();
         this.diaries = response.data || [];
         
-        // Cache data
         this.cacheData();
       } catch (error) {
         this.error = error.message || 'Network error';
@@ -138,7 +150,6 @@ export default {
       }
     },
     
-    // Get status class based on diary status
     getStatusClass(status) {
       switch (status) {
         case 'pending': return 'status-pending';
@@ -148,7 +159,6 @@ export default {
       }
     },
     
-    // Get status text based on diary status
     getStatusText(status) {
       switch (status) {
         case 'pending': return '审核中';
@@ -158,21 +168,18 @@ export default {
       }
     },
     
-    // Navigate to publish page
     navigateToPublish() {
       uni.navigateTo({
         url: '/pages/Publish/Publish'
       });
     },
     
-    // Navigate to edit page
     editDiary(id) {
       uni.navigateTo({
         url: `/pages/Publish/Publish?id=${id}`
       });
     },
     
-    // Confirm diary deletion
     confirmDelete(id) {
       uni.showModal({
         title: '确认删除',
@@ -186,21 +193,17 @@ export default {
       });
     },
     
-    // Delete diary
     async deleteDiary(id) {
       try {
         await api.diaries.delete(id);
         
-        // Remove the diary from the list
         this.diaries = this.diaries.filter(diary => diary.id !== id);
         
-        // Show success message
         uni.showToast({
           title: '删除成功',
           icon: 'success'
         });
         
-        // Update cache
         this.cacheData();
       } catch (error) {
         uni.showToast({
@@ -210,7 +213,6 @@ export default {
       }
     },
     
-    // Cache data to local storage
     cacheData() {
       try {
         const cacheData = {
@@ -218,13 +220,12 @@ export default {
           timestamp: Date.now()
         };
         
-        uni.setStorageSync('my_diaries_cache', JSON.stringify(cacheData));
+        uni.setStorageSync(this.cacheKey, JSON.stringify(cacheData));
       } catch (e) {
-        console.error('Failed to cache data:', e);
+        console.error('Failed to cache my diaries data:', e);
       }
     },
     
-    // Confirm logout
     confirmLogout() {
       uni.showModal({
         title: '确认退出',
@@ -238,11 +239,16 @@ export default {
       });
     },
     
-    // Logout
     logout() {
       this.userStore.logout();
       uni.redirectTo({
         url: '/pages/Login/Login'
+      });
+    },
+
+    viewDiary(id) {
+      uni.navigateTo({
+        url: `/pages/DiaryDetail/DiaryDetail?id=${id}`
       });
     }
   }
@@ -256,7 +262,7 @@ export default {
   background: linear-gradient(135deg, #13547a 0%, #80d0c7 100%);
   font-family: 'Poppins', sans-serif;
   position: relative;
-  padding-bottom: 200rpx; /* Increased space for add button and tab bar */
+  padding-bottom: 200rpx;
 }
 
 .content {
@@ -400,7 +406,7 @@ export default {
 
 .add-button {
   position: fixed;
-  bottom: 140rpx; /* Increased bottom value to avoid tab bar */
+  bottom: 140rpx;
   left: 50%;
   transform: translateX(-50%);
   width: 80%;

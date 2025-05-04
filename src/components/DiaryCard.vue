@@ -1,12 +1,17 @@
 <template>
   <view class="diary-card" @click="viewDiary">
-    <image class="diary-image" :src="diary.coverImage || '/static/default-image.jpg'" mode="aspectFill" :lazy-load="true"></image>
+    <image class="diary-image" :src="diary.coverImage || (diary.images && diary.images.length > 0 ? diary.images[0] : '/static/default-image.jpg')" mode="aspectFill" :lazy-load="true"></image>
     <view class="diary-info">
       <text class="diary-title">{{ diary.title }}</text>
       <view class="author-info">
         <image class="author-avatar" :src="diary.authorAvatar || '/static/default-avatar.png'" mode="aspectFill"></image>
         <text class="author-name">{{ diary.authorNickname }}</text>
       </view>
+    </view>
+
+    <!-- Video Indicator -->
+    <view class="video-indicator" v-if="diary.video">
+      <text class="video-icon"><i class="fas fa-play-circle"></i></text>
     </view>
   </view>
 </template>
@@ -22,7 +27,7 @@ export default {
   methods: {
     viewDiary() {
       uni.navigateTo({
-        url: `/diary-detail?id=${this.diary.id}`
+        url: `/pages/DiaryDetail/DiaryDetail?id=${this.diary.id}`
       });
     }
   }
@@ -37,6 +42,7 @@ export default {
   overflow: hidden;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
   transition: transform 0.3s;
+  position: relative;
 }
 
 .diary-card:active {
@@ -88,5 +94,23 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.video-indicator {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-icon {
+  color: white;
+  font-size: 36rpx;
 }
 </style> 

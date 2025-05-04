@@ -3,36 +3,59 @@
 		{
 			"path": "pages/Home/Home",
 			"style": {
-				"navigationBarTitleText": "Travel Diary",
-				"enablePullDownRefresh": true
-			}
+				"navigationBarTitleText": "旅行日记",
+				"enablePullDownRefresh": true,
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
+			},
+			"alias": "/"
 		},
 		{
 			"path": "pages/DiaryDetail/DiaryDetail",
 			"style": {
-				"navigationBarTitleText": "Diary Details",
-				"navigationStyle": "custom"
+				"navigationBarTitleText": "游记详情",
+				"navigationStyle": "custom",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
 			},
 			"alias": "/diary-detail"
 		},
 		{
 			"path": "pages/MyDiaries/MyDiaries",
 			"style": {
-				"navigationBarTitleText": "My Diaries",
-				"enablePullDownRefresh": true
-			}
+				"navigationBarTitleText": "我的游记",
+				"enablePullDownRefresh": true,
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
+			},
+			"alias": "/my-diaries"
 		},
 		{
 			"path": "pages/Publish/Publish",
 			"style": {
-				"navigationBarTitleText": "发布游记"
-			}
+				"navigationBarTitleText": "发布游记",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
+			},
+			"alias": "/publish"
 		},
 		{
 			"path": "pages/Login/Login",
 			"style": {
 				"navigationBarTitleText": "登录",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
 			},
 			"alias": "/login"
 		},
@@ -40,7 +63,11 @@
 			"path": "pages/Register/Register",
 			"style": {
 				"navigationBarTitleText": "注册",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
 			},
 			"alias": "/register"
 		},
@@ -48,7 +75,11 @@
 			"path": "pages/Admin/Admin",
 			"style": {
 				"navigationBarTitleText": "游记管理系统",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
 			},
 			"alias": "/admin"
 		},
@@ -56,16 +87,24 @@
 			"path": "pages/AdminLogin/AdminLogin",
 			"style": {
 				"navigationBarTitleText": "管理员登录",
-				"navigationStyle": "custom"
+				"navigationStyle": "custom",
+				"app-plus": {
+					"animationType": "fade-in-out",
+					"animationDuration": 300
+				}
 			},
 			"alias": "/admin-login"
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "Travel Diary",
+		"navigationBarTitleText": "旅行日记",
 		"navigationBarBackgroundColor": "#3B82F6",
-		"backgroundColor": "#F8F8F8"
+		"backgroundColor": "#F8F8F8",
+		"app-plus": {
+			"animationType": "fade-in-out",
+			"animationDuration": 300
+		}
 	},
 	"tabBar": {
 		"color": "#7A7E83",
@@ -74,13 +113,13 @@
 		"list": [
 			{
 				"pagePath": "pages/Home/Home",
-				"text": "Home",
+				"text": "首页",
 				"iconPath": "static/icons/home.png",
 				"selectedIconPath": "static/icons/home-active.png"
 			},
 			{
 				"pagePath": "pages/MyDiaries/MyDiaries",
-				"text": "My Diaries",
+				"text": "我的游记",
 				"iconPath": "static/icons/diary.png",
 				"selectedIconPath": "static/icons/diary-active.png"
 			}
@@ -91,5 +130,13 @@
 		"custom": {
 			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
 		}
+	},
+	"h5": {
+		"router": {
+			"mode": "history",
+			"base": "/"
+		},
+		"title": "旅行日记",
+		"domain": "https://travel-diary.example.com"
 	}
 }

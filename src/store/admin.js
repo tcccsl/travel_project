@@ -2,80 +2,65 @@ import { defineStore } from 'pinia';
 import api from '../services/api';
 
 export const useAdminStore = defineStore('admin', {
-  state: () => ({
-    admin: null,
-    token: null,
-    role: null,
-    isLoggedIn: false,
-    loading: false,
-    error: null
-  }),
+  state: () => {
+    // 从持久化存储初始化状态
+    const adminToken = uni.getStorageSync('admin_token') || null;
+    const adminRole = uni.getStorageSync('admin_role') || null;
+    
+    return {
+      adminToken: adminToken,
+      role: adminRole,
+    };
+  },
   
   getters: {
-    // Get current admin
-    currentAdmin: (state) => state.admin,
+    // 检查管理员是否已登录
+    isAuthenticated: (state) => !!state.adminToken,
     
-    // Check if admin is authenticated
-    isAuthenticated: (state) => state.isLoggedIn && !!state.token,
-    
-    // Check if admin is an auditor
+    // 检查是否为审核员
     isAuditor: (state) => state.role === 'auditor',
     
-    // Check if admin is an admin (full privileges)
+    // 检查是否为管理员
     isAdmin: (state) => state.role === 'admin'
   },
   
   actions: {
-    // Admin login
-    async login(credentials) {
-      this.loading = true;
-      this.error = null;
+    // 设置管理员信息
+    setAdmin(adminData) {
+      if (!adminData) return;
       
-      try {
-        const response = await api.admin.login(credentials);
-        this.setAdminData(response.data);
-        return response;
-      } catch (error) {
-        this.error = error.response?.data?.message || 'Login failed';
-        throw error;
-      } finally {
-        this.loading = false;
-      }
+      this.adminToken = adminData.token || this.adminToken;
+      this.role = adminData.role || this.role;
+      
+      // 持久化存储
+      uni.setStorageSync('admin_token', this.adminToken);
+      uni.setStorageSync('admin_role', this.role);
     },
     
-    // Set admin data after successful authentication
-    setAdminData(data) {
-      this.admin = data.admin;
-      this.token = data.token;
-      this.role = data.role;
-      this.isLoggedIn = true;
-      
-      // Save token to localStorage
-      uni.setStorageSync('admin_token', data.token);
-      uni.setStorageSync('admin_role', data.role);
-    },
-    
-    // Logout admin
-    logout() {
-      this.admin = null;
-      this.token = null;
+    // 清除管理员信息
+    clearAdmin() {
+      this.adminToken = null;
       this.role = null;
-      this.isLoggedIn = false;
       
-      // Remove token from localStorage
+      // 清除持久化存储
       uni.removeStorageSync('admin_token');
       uni.removeStorageSync('admin_role');
     },
     
-    // Initialize store with saved token
-    init() {
-      const token = uni.getStorageSync('admin_token');
-      const role = uni.getStorageSync('admin_role');
-      if (token) {
-        this.token = token;
-        this.role = role;
-        this.isLoggedIn = true;
+    // 管理员登录
+    async login(credentials) {
+      try {
+        const response = await api.admin.login(credentials);
+        this.setAdmin(response.data);
+        return response;
+      } catch (error) {
+        throw error;
       }
+    },
+    
+    // 管理员登出
+    logout() {
+      this.clearAdmin();
     }
   }
 }); 

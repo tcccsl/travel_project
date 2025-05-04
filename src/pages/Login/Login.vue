@@ -154,8 +154,8 @@ export default {
         // 模拟登录成功
         const userStore = useUserStore();
         
-        // 手动设置用户数据
-        userStore.setUserData({
+        // 手动设置用户数据 - 使用更新后的方法名 setUser 替代 setUserData
+        userStore.setUser({
           token: 'demo-token-12345',
           user: {
             id: 1,

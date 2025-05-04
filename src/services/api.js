@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { useUserStore } from '../store/user';
+import { useAdminStore } from '../store/admin';
 
 // Base URL configuration
 const API_URL = 'https://api-example.com'; // Replace with your actual API URL
@@ -15,20 +17,23 @@ const apiClient = axios.create({
 
 // Add auth token interceptor
 apiClient.interceptors.request.use(config => {
-  // Check if it's an admin API request
+  // 检查是否是 admin API 请求
   if (config.url.includes('/api/admin')) {
-    const token = uni.getStorageSync('admin_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // 使用 admin store 的 token
+    const adminStore = useAdminStore();
+    if (adminStore.adminToken) {
+      config.headers.Authorization = `Bearer ${adminStore.adminToken}`;
     }
   } else {
-    // Regular user request
-    const token = uni.getStorageSync('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // 普通用户请求使用 user store 的 token
+    const userStore = useUserStore();
+    if (userStore.token) {
+      config.headers.Authorization = `Bearer ${userStore.token}`;
     }
   }
   return config;
+}, error => {
+  return Promise.reject(error);
 });
 
 // API endpoints
