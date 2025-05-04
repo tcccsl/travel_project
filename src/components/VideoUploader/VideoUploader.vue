@@ -100,45 +100,74 @@ export default {
       this.uploading = true;
       this.uploadProgress = 0;
       
-      const uploadTask = uni.uploadFile({
-        url: 'https://api-example.com/api/upload/video', // 替换为实际的上传API
-        filePath,
-        name: 'file',
-        header: {
-          'Authorization': `Bearer ${uni.getStorageSync('token')}`
-        },
-        success: (res) => {
-          if (res.statusCode === 200) {
-            try {
-              const result = JSON.parse(res.data);
-              this.videoUrl = result.url;
-              this.$emit('input', result.url);
-              
-              uni.showToast({
-                title: '视频上传成功',
-                icon: 'success'
-              });
-            } catch (e) {
-              console.error('解析上传响应失败:', e);
-              this.handleUploadError('解析响应失败');
+      // 先将视频转换为DataURL
+      this.videoToDataURL(filePath).then(dataURL => {
+        // 使用DataURL方式上传视频
+        uni.request({
+          url: 'https://api-example.com/api/upload/video', // 替换为实际的上传API
+          method: 'POST',
+          header: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${uni.getStorageSync('token')}`
+          },
+          data: {
+            video: dataURL  // 直接发送dataURL
+          },
+          success: (res) => {
+            if (res.statusCode === 200) {
+              try {
+                this.videoUrl = res.data.url;
+                this.$emit('input', res.data.url);
+                
+                uni.showToast({
+                  title: '视频上传成功',
+                  icon: 'success'
+                });
+              } catch (e) {
+                console.error('解析上传响应失败:', e);
+                this.handleUploadError('解析响应失败');
+              }
+            } else {
+              this.handleUploadError(`上传失败，状态码: ${res.statusCode}`);
             }
-          } else {
-            this.handleUploadError(`上传失败，状态码: ${res.statusCode}`);
+          },
+          fail: (err) => {
+            console.error('Upload failed:', err);
+            this.handleUploadError('网络错误');
+          },
+          complete: () => {
+            this.uploading = false;
+            this.uploadProgress = 100;
           }
-        },
-        fail: (err) => {
-          console.error('Upload failed:', err);
-          this.handleUploadError('网络错误');
-        },
-        complete: () => {
-          this.uploading = false;
-          this.uploadProgress = 100;
-        }
+        });
+      }).catch(error => {
+        console.error('Convert video failed:', error);
+        this.handleUploadError('视频转换失败');
+        this.uploading = false;
       });
-      
-      // 监听上传进度
-      uploadTask.onProgressUpdate((res) => {
-        this.uploadProgress = res.progress;
+    },
+    
+    // 将视频转换为DataURL
+    videoToDataURL(filePath) {
+      return new Promise((resolve, reject) => {
+        // 读取本地文件为Base64
+        plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+          entry.file((file) => {
+            const reader = new plus.io.FileReader();
+            reader.onloadend = function(e) {
+              // 返回base64
+              resolve(e.target.result);
+            };
+            reader.onerror = function(e) {
+              reject(e);
+            };
+            reader.readAsDataURL(file);
+          }, (error) => {
+            reject(error);
+          });
+        }, (error) => {
+          reject(error);
+        });
       });
     },
     

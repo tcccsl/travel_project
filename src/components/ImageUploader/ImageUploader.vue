@@ -105,6 +105,30 @@ export default {
       });
     },
     
+    // 将图片转换为Base64或DataURL
+    async imageToDataURL(filePath) {
+      return new Promise((resolve, reject) => {
+        // 读取本地文件为Base64
+        plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
+          entry.file((file) => {
+            const reader = new plus.io.FileReader();
+            reader.onloadend = function(e) {
+              // 返回base64
+              resolve(e.target.result);
+            };
+            reader.onerror = function(e) {
+              reject(e);
+            };
+            reader.readAsDataURL(file);
+          }, (error) => {
+            reject(error);
+          });
+        }, (error) => {
+          reject(error);
+        });
+      });
+    },
+    
     // 上传图片到服务器
     async uploadImages(images) {
       this.uploading = true;
@@ -114,7 +138,11 @@ export default {
         const index = this.imageList.findIndex(item => item === image);
         
         try {
-          const uploadResult = await this.uploadFile(image.file.path);
+          // 先将图片转换为DataURL
+          const dataURL = await this.imageToDataURL(image.file.path);
+          
+          // 使用DataURL上传
+          const uploadResult = await this.uploadFile(dataURL);
           
           // 上传成功，更新状态和URL
           if (index !== -1) {
@@ -143,20 +171,22 @@ export default {
     },
     
     // 上传单个文件
-    uploadFile(filePath) {
+    uploadFile(dataURL) {
       return new Promise((resolve, reject) => {
-        uni.uploadFile({
+        uni.request({
           url: 'https://api-example.com/api/upload/image', // 替换为实际的上传API
-          filePath,
-          name: 'file',
+          method: 'POST',
           header: {
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${uni.getStorageSync('token')}`
+          },
+          data: {
+            image: dataURL  // 直接发送dataURL
           },
           success: (res) => {
             if (res.statusCode === 200) {
               try {
-                const result = JSON.parse(res.data);
-                resolve(result);
+                resolve(res.data);
               } catch (e) {
                 reject(new Error('解析上传响应失败'));
               }
