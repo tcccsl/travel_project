@@ -44,6 +44,7 @@
             :max-count="9"
             :required="true"
             ref="imageUploader"
+            @change="handleImagesUpdate"
           />
           <view class="error-tip" v-if="errors.images">{{ errors.images }}</view>
         </view>
@@ -156,6 +157,9 @@ export default {
     
     // 验证表单
     validateForm() {
+      console.log('开始表单验证');
+      console.log('当前表单数据:', JSON.stringify(this.formData));
+      
       // 重置错误信息
       this.errors = {
         title: '',
@@ -181,11 +185,21 @@ export default {
       }
       
       // 验证图片
-      if (!this.$refs.imageUploader.validate()) {
-        this.errors.images = '请上传至少一张图片';
-        isValid = false;
+      console.log('验证图片数组:', this.formData.images);
+      if (!Array.isArray(this.formData.images)) {
+        console.log('图片数组不是有效数组，初始化为空数组');
+        this.formData.images = [];
       }
       
+      if (this.formData.images.length === 0) {
+        console.log('图片验证失败：没有图片');
+        this.errors.images = '请上传至少一张图片';
+        isValid = false;
+      } else {
+        console.log('图片验证通过，数量:', this.formData.images.length);
+      }
+      
+      console.log('验证结果:', isValid);
       return isValid;
     },
     
@@ -229,12 +243,14 @@ export default {
         
         uni.showToast({
           title: this.isEdit ? '更新成功' : '发布成功',
-          icon: 'success'
+          icon: 'success',
+          duration: 1500
         });
         
         // 延迟跳转，让用户看到成功提示
         setTimeout(() => {
-          uni.redirectTo({
+          // 使用 switchTab 而不是 redirectTo
+          uni.switchTab({
             url: '/pages/MyDiaries/MyDiaries'
           });
         }, 1500);
@@ -328,6 +344,28 @@ export default {
           }
         }
       });
+    },
+    
+    // 添加图片上传成功的处理方法
+    handleImagesUpdate(urls) {
+      console.log('Publish 组件收到图片更新:', urls);
+      
+      if (Array.isArray(urls)) {
+        // 使用 Vue.set 确保响应式更新
+        this.$set(this.formData, 'images', urls);
+        
+        // 立即检查更新后的值
+        console.log('更新后的 formData:', JSON.stringify(this.formData));
+        console.log('更新后的图片数组:', this.formData.images);
+        
+        // 更新验证状态
+        if (this.formData.images.length > 0) {
+          this.errors.images = '';
+          console.log('清除图片错误提示');
+        }
+      } else {
+        console.error('收到无效的图片数据:', urls);
+      }
     }
   }
 }

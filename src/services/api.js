@@ -3,7 +3,7 @@ import { useUserStore } from '../store/user';
 import { useAdminStore } from '../store/admin';
 
 // Base URL configuration
-const API_URL = 'https://api-example.com'; // Replace with your actual API URL
+const API_URL = 'http://localhost:3000'; //actual API URL
 
 // 针对大文件上传，增加超时时间
 const UPLOAD_TIMEOUT = 60000; // 60秒超时
@@ -55,6 +55,23 @@ uploadClient.interceptors.request.use(addAuthToken, error => {
   return Promise.reject(error);
 });
 
+// 在 services/api.js 中添加请求拦截器
+const requestInterceptor = {
+  request: (config) => {
+    console.log('发送请求:', {
+      url: config.url,
+      method: config.method,
+      headers: config.header,
+      data: config.data
+    });
+    return config;
+  },
+  response: (response) => {
+    console.log('收到响应:', response);
+    return response;
+  }
+};
+
 // API endpoints
 export default {
   // Diary related endpoints
@@ -72,7 +89,7 @@ export default {
       return apiClient.get(`/diaries/${id}`);
     },
     create(diary) {
-      return apiClient.post('/diaries', diary);
+      return apiClient.post('/diaries', diary);  
     },
     update(id, diary) {
       return apiClient.put(`/diaries/${id}`, diary);
@@ -134,6 +151,40 @@ export default {
 
   // File upload endpoints
   upload: {
+    // Upload file using FormData
+    file(formData) {
+      console.log('开始上传文件到服务器');
+      return uploadClient.post('/api/upload/image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log('上传进度:', percentCompleted + '%');
+        }
+      }).then(response => {
+        console.log('文件上传成功，服务器返回:', response.data);
+        // 修改判断逻辑，适应后端返回的数据结构
+        if (!response.data || response.data.code !== 200 || !response.data.data || !response.data.data.url) {
+          console.error('服务器返回数据格式不正确:', response.data);
+          throw new Error(response.data?.msg || '服务器返回数据格式不正确');
+        }
+        // 直接返回需要的 URL 数据
+        return response.data.data;
+      }).catch(error => {
+        console.error('文件上传失败:', error.response || error);
+        // 如果是网络错误
+        if (error.isAxiosError && !error.response) {
+          console.error('网络错误或服务器未响应');
+        }
+        // 如果是服务器错误
+        else if (error.response) {
+          console.error('服务器返回错误:', error.response.status, error.response.data);
+        }
+        throw error;
+      });
+    },
+    
     // Upload image as base64 data URL
     image(imageBase64) {
       console.log('开始上传图片，dataURL长度:', imageBase64.length);
@@ -183,4 +234,4 @@ export default {
       });
     }
   }
-}; 
+};

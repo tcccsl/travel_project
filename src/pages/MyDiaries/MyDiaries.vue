@@ -81,9 +81,7 @@ export default {
     return {
       diaries: [],
       loading: false,
-      error: null,
-      cacheKey: 'my_diaries_cache',
-      cacheExpiration: 5 * 60 * 1000
+      error: null
     }
   },
   computed: {
@@ -99,54 +97,44 @@ export default {
       return;
     }
     
-    uni.removeStorageSync('my_diaries_cache');
-    
-    this.loadCachedData();
-    
+    // 首次加载数据
     this.fetchMyDiaries();
   },
+  // 移除 onShow 生命周期钩子，避免自动刷新
+  
+  // 下拉刷新
   onPullDownRefresh() {
     this.fetchMyDiaries();
   },
   methods: {
-    loadCachedData() {
-      try {
-        const cachedData = uni.getStorageSync(this.cacheKey);
-        if (cachedData) {
-          const parsedData = JSON.parse(cachedData);
-          
-          const now = Date.now();
-          if (parsedData.timestamp && (now - parsedData.timestamp < this.cacheExpiration)) {
-            this.diaries = parsedData.diaries || [];
-            console.log('Loaded cached my diaries data');
-          } else {
-            console.log('My diaries cache expired');
-            uni.removeStorageSync(this.cacheKey);
-          }
-        }
-      } catch (e) {
-        console.error('Failed to parse cached my diaries data:', e);
-        uni.removeStorageSync(this.cacheKey);
-      }
-    },
-    
     async fetchMyDiaries() {
+      if (this.loading) return;
+      
       this.loading = true;
+      uni.showNavigationBarLoading(); // 显示导航栏加载动画
       
       try {
         const response = await api.diaries.getMine();
-        this.diaries = response.data || [];
         
-        this.cacheData();
+        if (response.data) {
+          this.diaries = Array.isArray(response.data) ? response.data : 
+                        (response.data.data || []);
+          
+          // 按创建时间倒序排序
+          this.diaries.sort((a, b) => 
+            new Date(b.createdAt) - new Date(a.createdAt)
+          );
+        }
       } catch (error) {
-        this.error = error.message || 'Network error';
+        console.error('获取游记失败:', error);
         uni.showToast({
           title: '获取游记失败，请重试',
           icon: 'none'
         });
       } finally {
         this.loading = false;
-        uni.stopPullDownRefresh();
+        uni.hideNavigationBarLoading(); // 隐藏导航栏加载动画
+        uni.stopPullDownRefresh(); // 停止下拉刷新动画
       }
     },
     
@@ -203,26 +191,11 @@ export default {
           title: '删除成功',
           icon: 'success'
         });
-        
-        this.cacheData();
       } catch (error) {
         uni.showToast({
           title: '删除失败，请重试',
           icon: 'none'
         });
-      }
-    },
-    
-    cacheData() {
-      try {
-        const cacheData = {
-          diaries: this.diaries,
-          timestamp: Date.now()
-        };
-        
-        uni.setStorageSync(this.cacheKey, JSON.stringify(cacheData));
-      } catch (e) {
-        console.error('Failed to cache my diaries data:', e);
       }
     },
     

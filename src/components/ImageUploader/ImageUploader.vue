@@ -64,7 +64,6 @@ export default {
   watch: {
     value: {
       handler(newVal) {
-        // 如果外部传入的值变化，则更新本地的imageList
         if (newVal && Array.isArray(newVal)) {
           this.imageList = newVal.map(url => ({
             url,
@@ -93,10 +92,20 @@ export default {
         count,
         sizeType: ['compressed'],
         sourceType: ['album', 'camera'],
-        success: (res) => {
+        success: async (res) => {
+          console.log('选择图片成功，详细信息:', {
+            tempFiles: res.tempFiles,
+            tempFilePaths: res.tempFilePaths
+          });
+          
           const tempFiles = res.tempFiles;
           
-          // 检查图片大小
+          console.log('第一个文件的详细信息:', {
+            path: tempFiles[0].path,
+            size: tempFiles[0].size,
+            type: tempFiles[0].type
+          });
+          
           const oversizedFiles = tempFiles.filter(file => file.size > this.maxSize);
           if (oversizedFiles.length > 0) {
             uni.showToast({
@@ -106,17 +115,28 @@ export default {
             return;
           }
           
-          // 添加到列表中，初始状态为uploading
+          // 为每个图片生成唯一ID
           const newImages = tempFiles.map(file => ({
+            id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             url: file.path,
             status: 'uploading',
-            file
+            file: file
           }));
           
-          this.imageList = [...this.imageList, ...newImages];
+          console.log('准备添加的新图片:', newImages);
           
-          // 上传图片
-          this.uploadImages(newImages);
+          this.imageList = [...this.imageList, ...newImages];
+          console.log('更新后的图片列表:', this.imageList);
+          
+          try {
+            console.log('开始上传图片...');
+            await this.uploadImages(newImages);
+          } catch (error) {
+            console.error('上传过程出错:', error);
+          }
+        },
+        fail: (error) => {
+          console.error('选择图片失败:', error);
         }
       });
     },
@@ -204,60 +224,133 @@ export default {
     
     // 上传图片到服务器
     async uploadImages(images) {
-      this.uploading = true;
+      console.log('===== 开始上传图片流程 =====');
+      console.log('待上传图片列表:', images);
+      console.log('当前图片列表状态:', this.imageList);
       
+      this.uploading = true;
+      uni.showLoading({
+        title: '上传中...',
+        mask: true
+      });
+      
+      try {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        const index = this.imageList.findIndex(item => item === image);
-        
-        try {
-          // 先将图片转换为DataURL
-          const dataURL = await this.imageToDataURL(image.file.path);
+          console.log(`----- 处理第 ${i + 1} 张图片 -----`);
+          console.log('图片信息:', {
+            id: image.id,
+            path: image.file.path,
+            size: image.file.size,
+            type: image.file.type
+          });
           
-          // 打印完整的dataURL开头部分和长度，不要截断
-          console.log('图片转换为dataURL结果前200字符:', dataURL.substring(0, 200));
-          console.log('图片dataURL总长度:', dataURL.length);
+          // 使用ID查找图片索引
+          const index = this.imageList.findIndex(item => item.id === image.id);
+          console.log('在图片列表中的索引:', index);
           
-          // 在上传前先尝试显示dataURL图片验证是否有效
-          this.testImageDataURL(dataURL);
-          
-          // 关键修改：直接使用dataURL，不再依赖服务器返回的URL
           if (index !== -1) {
-            this.imageList[index].status = 'success';
-            // 直接使用本地生成的dataURL作为图片源
-            this.imageList[index].url = dataURL;
-            
-            // 通知父组件值已更改
-            this.emitChange();
-            
-            // 创建一个新标签页打开图片URL进行测试
-            this.openImageInNewTab(dataURL);
-            
-            // 仍然上传到服务器，但不使用返回的URL
             try {
-              const uploadResult = await this.uploadFile(dataURL);
-              console.log('服务器返回的URL:', uploadResult.url);
-              console.log('我们使用的本地dataURL:', dataURL.substring(0, 100) + '...');
-            } catch (uploadError) {
-              console.error('上传到服务器失败，但本地显示仍然有效', uploadError);
-            }
-          }
-        } catch (error) {
-          console.error('Upload failed:', error);
-          
-          // 上传失败，更新状态
-          if (index !== -1) {
-            this.imageList[index].status = 'fail';
-          }
-          
+              let uploadResponse;
+              
+              if (image.file.path.startsWith('blob:')) {
+                console.log('检测到 blob URL，开始获取文件内容');
+                try {
+                  const response = await fetch(image.file.path);
+                  console.log('fetch 响应状态:', response.status);
+                  const blob = await response.blob();
+                  console.log('获取到的 blob 信息:', {
+                    size: blob.size,
+                    type: blob.type
+                  });
+                  
+                  const formData = new FormData();
+                  formData.append('file', blob, 'image.jpg');
+                  console.log('FormData 创建成功，准备上传');
+                  
+                  console.log('开始调用 api.upload.file');
+                  uploadResponse = await api.upload.file(formData);
+                  console.log('api.upload.file 调用成功，响应:', uploadResponse);
+                } catch (error) {
+                  console.error('处理 blob URL 过程出错:', error);
+                  throw error;
+                }
+              } else {
+                console.log('使用 uni.uploadFile 上传本地文件');
+                uploadResponse = await new Promise((resolve, reject) => {
+                  const uploadTask = uni.uploadFile({
+                    url: 'http://localhost:3000/api/upload/image',
+                    filePath: image.file.path,
+                    name: 'file',
+                    header: {
+                      'Authorization': `Bearer ${uni.getStorageSync('token')}`,
+                      'Content-Type': 'multipart/form-data'
+                    },
+                    success: (res) => {
+                      console.log('uni.uploadFile 成功响应:', res);
+                      if (res.statusCode === 200) {
+                        try {
+                          const result = JSON.parse(res.data);
+                          resolve(result);
+                        } catch (e) {
+                          console.error('解析响应数据失败:', e);
+                          reject(new Error('解析响应数据失败'));
+                        }
+                      } else {
+                        reject(new Error(`上传失败，状态码: ${res.statusCode}`));
+                      }
+                    },
+                    fail: (error) => {
+                      console.error('uni.uploadFile 失败:', error);
+                      reject(error);
+                    }
+                  });
+                  
+                  uploadTask.onProgressUpdate((res) => {
+                    console.log('上传进度:', res.progress + '%');
+                  });
+                });
+              }
+              
+              console.log('处理上传响应:', uploadResponse);
+              if (uploadResponse && (uploadResponse.data || uploadResponse.url)) {
+                const imageUrl = uploadResponse.data ? uploadResponse.data.url : uploadResponse.url;
+                console.log('获取到的图片URL:', imageUrl);
+                
+                this.$set(this.imageList, index, {
+                  ...this.imageList[index],
+                  status: 'success',
+                  url: imageUrl
+                });
+                
+                console.log('图片状态更新完成，当前列表:', this.imageList);
+                this.emitChange();
+              } else {
+                console.error('未获取到有效的图片URL:', uploadResponse);
+                throw new Error('未获取到有效的图片URL');
+              }
+              
+            } catch (error) {
+              console.error('上传过程出错:', error);
+              this.$set(this.imageList, index, {
+                ...this.imageList[index],
+                status: 'fail'
+              });
+              
           uni.showToast({
-            title: '图片上传失败，请重试',
+                title: '图片上传失败',
             icon: 'none'
           });
+            }
+          } else {
+            console.error('无法找到图片在列表中的位置:', image.id);
+          }
         }
+      } finally {
+        console.log('===== 上传流程结束 =====');
+        this.uploading = false;
+        uni.hideLoading();
       }
-      
-      this.uploading = false;
     },
     
     // 测试dataURL图片是否有效
@@ -355,23 +448,37 @@ export default {
     
     // 获取所有成功上传的图片URL
     getImageUrls() {
-      return this.imageList
+      const urls = this.imageList
         .filter(image => image.status === 'success')
         .map(image => image.url);
+      console.log('获取当前图片URLs:', urls); // 添加日志
+      return urls;
     },
     
     // 通知父组件值已更改
     emitChange() {
       const urls = this.getImageUrls();
+      console.log('准备发送图片更新事件');
+      console.log('当前图片列表:', this.imageList);
+      console.log('筛选后的URLs:', urls);
+      
       this.$emit('input', urls);
+      this.$emit('change', urls);
     },
     
     // 验证是否满足要求
     validate() {
-      if (this.required && this.getImageUrls().length === 0) {
-        return false;
+      const successImages = this.getImageUrls();
+      const isValid = this.required ? successImages.length > 0 : true;
+      
+      if (!isValid) {
+        uni.showToast({
+          title: '请至少上传一张图片',
+          icon: 'none'
+        });
       }
-      return true;
+      
+      return isValid;
     },
     
     // 格式化文件大小
@@ -383,6 +490,23 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+    
+    async handleUpload(file) {
+      try {
+        const response = await this.$api.upload.uploadImage(file);
+        if (response.data && response.data.url) {
+          // 使用完整URL
+          const imageUrl = response.data.url;
+          this.imageList.push({
+            url: imageUrl,
+            status: 'success'
+          });
+          this.$emit('update:value', this.imageList);
+        }
+      } catch (error) {
+        console.error('上传失败:', error);
+      }
     }
   }
 }
