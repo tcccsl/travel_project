@@ -3,14 +3,46 @@
 		{
 			"path": "pages/Home/Home",
 			"style": {
-				"navigationBarTitleText": "Travel Diary"
+				"navigationBarTitleText": "Travel Diary",
+				"enablePullDownRefresh": true
 			}
 		},
 		{
 			"path": "pages/DiaryDetail/DiaryDetail",
 			"style": {
-				"navigationBarTitleText": "Diary Details"
+				"navigationBarTitleText": "Diary Details",
+				"navigationStyle": "custom"
+			},
+			"alias": "/diary-detail"
+		},
+		{
+			"path": "pages/MyDiaries/MyDiaries",
+			"style": {
+				"navigationBarTitleText": "My Diaries",
+				"enablePullDownRefresh": true
 			}
+		},
+		{
+			"path": "pages/Publish/Publish",
+			"style": {
+				"navigationBarTitleText": "发布游记"
+			}
+		},
+		{
+			"path": "pages/Login/Login",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			},
+			"alias": "/login"
+		},
+		{
+			"path": "pages/Register/Register",
+			"style": {
+				"navigationBarTitleText": "注册",
+				"navigationStyle": "custom"
+			},
+			"alias": "/register"
 		}
 	],
 	"globalStyle": {
@@ -29,7 +61,19 @@
 				"text": "Home",
 				"iconPath": "static/icons/home.png",
 				"selectedIconPath": "static/icons/home-active.png"
+			},
+			{
+				"pagePath": "pages/MyDiaries/MyDiaries",
+				"text": "My Diaries",
+				"iconPath": "static/icons/diary.png",
+				"selectedIconPath": "static/icons/diary-active.png"
 			}
 		]
+	},
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue"
+		}
 	}
 }

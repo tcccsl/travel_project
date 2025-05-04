@@ -13,12 +13,27 @@ const apiClient = axios.create({
   }
 });
 
+// Add auth token interceptor
+apiClient.interceptors.request.use(config => {
+  const token = uni.getStorageSync('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // API endpoints
 export default {
   // Diary related endpoints
   diaries: {
-    getAll() {
-      return apiClient.get('/diaries');
+    getAll(params = {}) {
+      return apiClient.get('/diaries', { 
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 10,
+          keyword: params.keyword
+        }
+      });
     },
     getById(id) {
       return apiClient.get(`/diaries/${id}`);
@@ -31,6 +46,10 @@ export default {
     },
     delete(id) {
       return apiClient.delete(`/diaries/${id}`);
+    },
+    // Get current user's diaries
+    getMine() {
+      return apiClient.get('/diaries/mine');
     }
   },
   
@@ -44,6 +63,14 @@ export default {
     },
     getProfile() {
       return apiClient.get('/auth/profile');
+    },
+    // Check if username is available
+    checkUsername(username) {
+      return apiClient.get('/auth/check-username', { params: { username } });
+    },
+    // Check if nickname is available
+    checkNickname(nickname) {
+      return apiClient.get('/auth/check-nickname', { params: { nickname } });
     }
   }
 }; 
