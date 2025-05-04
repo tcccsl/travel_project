@@ -34,6 +34,8 @@
 </template>
 
 <script>
+import api from '@/services/api';  // 导入API服务
+
 export default {
   props: {
     value: {
@@ -47,6 +49,10 @@ export default {
     required: {
       type: Boolean,
       default: false
+    },
+    maxSize: {
+      type: Number,
+      default: 10 * 1024 * 1024 // 默认最大10MB
     }
   },
   data() {
@@ -90,6 +96,16 @@ export default {
         success: (res) => {
           const tempFiles = res.tempFiles;
           
+          // 检查图片大小
+          const oversizedFiles = tempFiles.filter(file => file.size > this.maxSize);
+          if (oversizedFiles.length > 0) {
+            uni.showToast({
+              title: `图片大小不能超过${this.formatSize(this.maxSize)}`,
+              icon: 'none'
+            });
+            return;
+          }
+          
           // 添加到列表中，初始状态为uploading
           const newImages = tempFiles.map(file => ({
             url: file.path,
@@ -106,9 +122,11 @@ export default {
     },
     
     // 将图片转换为Base64或DataURL
-    async imageToDataURL(filePath) {
+    imageToDataURL(filePath) {
       return new Promise((resolve, reject) => {
-        // 读取本地文件为Base64
+        // 针对不同平台使用不同的方法获取base64
+        // #ifdef APP-PLUS
+        // App环境使用plus API
         plus.io.resolveLocalFileSystemURL(filePath, (entry) => {
           entry.file((file) => {
             const reader = new plus.io.FileReader();
@@ -126,6 +144,61 @@ export default {
         }, (error) => {
           reject(error);
         });
+        // #endif
+        
+        // #ifdef H5
+        // H5环境中直接使用标准FileReader API
+        // 对于H5环境，uni.chooseImage会返回本地临时路径，可能是blob:开头的URL
+        if (filePath.startsWith('blob:') || filePath.startsWith('http')) {
+          // 如果是blob URL或已经是网络图片，直接使用fetch获取
+          fetch(filePath)
+            .then(response => response.blob())
+            .then(blob => {
+              const reader = new FileReader();
+              reader.onload = e => resolve(e.target.result);
+              reader.onerror = e => reject(e);
+              reader.readAsDataURL(blob);
+            })
+            .catch(reject);
+        } else {
+          // 如果是本地文件路径，尝试将其视为base64
+          try {
+            // 如果路径已经是data URL，则直接返回
+            if (filePath.startsWith('data:')) {
+              resolve(filePath);
+              return;
+            }
+            // 否则报错
+            reject(new Error('H5环境无法直接读取本地文件路径'));
+          } catch (e) {
+            reject(e);
+          }
+        }
+        // #endif
+        
+        // #ifdef MP
+        // 小程序环境中使用uni.getFileSystemManager
+        const fs = uni.getFileSystemManager();
+        fs.readFile({
+          filePath: filePath,
+          encoding: 'base64',
+          success: (res) => {
+            // 根据文件类型构造完整的data URL
+            const fileType = filePath.match(/\.([^\.]+)$/);
+            let mimeType = 'image/jpeg'; // 默认mime类型
+            if (fileType) {
+              const ext = fileType[1].toLowerCase();
+              if (ext === 'png') mimeType = 'image/png';
+              else if (ext === 'gif') mimeType = 'image/gif';
+              else if (ext === 'webp') mimeType = 'image/webp';
+            }
+            resolve(`data:${mimeType};base64,${res.data}`);
+          },
+          fail: (err) => {
+            reject(err);
+          }
+        });
+        // #endif
       });
     },
     
@@ -141,16 +214,33 @@ export default {
           // 先将图片转换为DataURL
           const dataURL = await this.imageToDataURL(image.file.path);
           
-          // 使用DataURL上传
-          const uploadResult = await this.uploadFile(dataURL);
+          // 打印完整的dataURL开头部分和长度，不要截断
+          console.log('图片转换为dataURL结果前200字符:', dataURL.substring(0, 200));
+          console.log('图片dataURL总长度:', dataURL.length);
           
-          // 上传成功，更新状态和URL
+          // 在上传前先尝试显示dataURL图片验证是否有效
+          this.testImageDataURL(dataURL);
+          
+          // 关键修改：直接使用dataURL，不再依赖服务器返回的URL
           if (index !== -1) {
             this.imageList[index].status = 'success';
-            this.imageList[index].url = uploadResult.url;
+            // 直接使用本地生成的dataURL作为图片源
+            this.imageList[index].url = dataURL;
             
             // 通知父组件值已更改
             this.emitChange();
+            
+            // 创建一个新标签页打开图片URL进行测试
+            this.openImageInNewTab(dataURL);
+            
+            // 仍然上传到服务器，但不使用返回的URL
+            try {
+              const uploadResult = await this.uploadFile(dataURL);
+              console.log('服务器返回的URL:', uploadResult.url);
+              console.log('我们使用的本地dataURL:', dataURL.substring(0, 100) + '...');
+            } catch (uploadError) {
+              console.error('上传到服务器失败，但本地显示仍然有效', uploadError);
+            }
           }
         } catch (error) {
           console.error('Upload failed:', error);
@@ -170,35 +260,74 @@ export default {
       this.uploading = false;
     },
     
+    // 测试dataURL图片是否有效
+    testImageDataURL(dataURL) {
+      const img = new Image();
+      img.onload = () => {
+        console.log('图片dataURL有效! 尺寸:', img.width, 'x', img.height);
+      };
+      img.onerror = () => {
+        console.error('图片dataURL无效或损坏!');
+      };
+      img.src = dataURL;
+    },
+    
+    // 在新标签页中打开图片
+    openImageInNewTab(dataURL) {
+      try {
+        // 尝试在新标签页中打开图片
+        const w = window.open('', '_blank');
+        if (w) {
+          w.document.write(`
+            <html>
+              <head><title>图片预览</title></head>
+              <body style="margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f0f0f0;">
+                <div style="max-width: 100%; text-align: center;">
+                  <p style="margin-bottom: 20px;">测试图片URL (Base64 DataURL):</p>
+                  <img src="${dataURL}" style="max-width: 100%; max-height: 80vh; box-shadow: 0 0 10px rgba(0,0,0,0.1);" />
+                  <p style="margin-top: 20px;">如果图片正常显示，说明dataURL有效。如果不显示，说明dataURL可能有问题。</p>
+                </div>
+              </body>
+            </html>
+          `);
+          w.document.close();
+        }
+      } catch (e) {
+        console.error('无法在新标签页打开图片:', e);
+      }
+    },
+    
     // 上传单个文件
     uploadFile(dataURL) {
       return new Promise((resolve, reject) => {
-        uni.request({
-          url: 'https://api-example.com/api/upload/image', // 替换为实际的上传API
-          method: 'POST',
-          header: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${uni.getStorageSync('token')}`
-          },
-          data: {
-            image: dataURL  // 直接发送dataURL
-          },
-          success: (res) => {
-            if (res.statusCode === 200) {
-              try {
-                resolve(res.data);
-              } catch (e) {
-                reject(new Error('解析上传响应失败'));
-              }
-            } else {
-              reject(new Error(`上传失败，状态码: ${res.statusCode}`));
-            }
-          },
-          fail: (err) => {
-            reject(err);
-          }
-        });
+        // 使用API服务上传图片
+        api.upload.image(dataURL)
+          .then(response => {
+            // 打印上传成功后的URL地址
+            console.log('图片上传成功，URL地址:', response.data.url);
+            
+            // 尝试发起一个请求来验证服务器返回的URL是否可访问
+            this.checkImageUrlAccess(response.data.url);
+            
+            resolve(response.data);
+          })
+          .catch(error => {
+            console.error('Upload failed:', error);
+            reject(error);
+          });
       });
+    },
+    
+    // 检查图片URL是否可以访问
+    checkImageUrlAccess(url) {
+      try {
+        const img = new Image();
+        img.onload = () => console.log('服务器返回的图片URL可以访问:', url);
+        img.onerror = () => console.error('服务器返回的图片URL无法访问:', url);
+        img.src = url;
+      } catch (e) {
+        console.error('检查图片URL时出错:', e);
+      }
     },
     
     // 预览图片
@@ -243,6 +372,17 @@ export default {
         return false;
       }
       return true;
+    },
+    
+    // 格式化文件大小
+    formatSize(bytes) {
+      if (bytes === 0) return '0 B';
+      
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
   }
 }
