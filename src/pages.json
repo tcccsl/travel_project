@@ -43,6 +43,22 @@
 				"navigationStyle": "custom"
 			},
 			"alias": "/register"
+		},
+		{
+			"path": "pages/Admin/Admin",
+			"style": {
+				"navigationBarTitleText": "游记管理系统",
+				"navigationStyle": "custom"
+			},
+			"alias": "/admin"
+		},
+		{
+			"path": "pages/AdminLogin/AdminLogin",
+			"style": {
+				"navigationBarTitleText": "管理员登录",
+				"navigationStyle": "custom"
+			},
+			"alias": "/admin-login"
 		}
 	],
 	"globalStyle": {

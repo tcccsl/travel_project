@@ -15,9 +15,18 @@ const apiClient = axios.create({
 
 // Add auth token interceptor
 apiClient.interceptors.request.use(config => {
-  const token = uni.getStorageSync('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Check if it's an admin API request
+  if (config.url.includes('/api/admin')) {
+    const token = uni.getStorageSync('admin_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } else {
+    // Regular user request
+    const token = uni.getStorageSync('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -50,6 +59,14 @@ export default {
     // Get current user's diaries
     getMine() {
       return apiClient.get('/diaries/mine');
+    },
+    // Update diary status (admin only)
+    updateStatus(id, statusData) {
+      return apiClient.put(`/api/diary/${id}/status`, statusData);
+    },
+    // Delete diary (admin only - logical delete)
+    adminDelete(id) {
+      return apiClient.delete(`/api/diary/${id}/delete`);
     }
   },
   
@@ -71,6 +88,23 @@ export default {
     // Check if nickname is available
     checkNickname(nickname) {
       return apiClient.get('/auth/check-nickname', { params: { nickname } });
+    }
+  },
+  
+  // Admin related endpoints
+  admin: {
+    login(credentials) {
+      return apiClient.post('/api/admin/login', credentials);
+    },
+    // Get all diaries for admin review
+    getDiaries(params = {}) {
+      return apiClient.get('/api/admin/diaries', {
+        params: {
+          page: params.page || 1,
+          limit: params.limit || 10,
+          status: params.status || ''
+        }
+      });
     }
   }
 }; 
