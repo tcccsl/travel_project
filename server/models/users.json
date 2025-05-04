@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1746279229175",
+    "username": "test",
+    "password": "$2b$10$aOZW.XPEJU/hGbzTkSIo1.MJ5amVj0hZB/4P4pCv.Z..PRvEqsizK",
+    "nickname": "ssl",
+    "avatar": null,
+    "createdAt": "2025-05-03T13:33:49.249Z"
+  },
+  {
+    "id": "1746345445393",
+    "username": "19823455422",
+    "password": "$2b$10$JwXJs26Iw36fHqYES0MBfeB5Y/kLrJA/2faf/37D6TLkf6jnT8SEO",
+    "nickname": "测试",
+    "avatar": "/static/default-avatar.png",
+    "createdAt": "2025-05-04T07:57:25.468Z"
+  },
+  {
+    "id": "1746345764467",
+    "username": "17545678901",
+    "password": "$2b$10$GpEtRGDo7OJenaLUQMPyL.T/q7cihCC0NyxLrToy3hLacCuWATUHe",
+    "nickname": "测试22",
+    "avatar": "/static/default-avatar.png",
+    "createdAt": "2025-05-04T08:02:44.547Z"
+  }
+]
