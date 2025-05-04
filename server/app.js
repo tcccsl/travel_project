@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import userRoutes from './routes/user.js';
+import diaryRoutes from './routes/diary.js';
+import uploadRoutes from './routes/upload.js';
 
 dotenv.config();
 
@@ -26,7 +28,16 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan('dev'));
 
+
 app.use('/auth', userRoutes);
+// 添加游记路由
+app.use('/api', diaryRoutes);
+
+// 添加静态文件服务
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// 添加上传路由
+app.use('/api/upload', uploadRoutes);
 
 app.use((req, res, next) => {
   res.status(404).json({ message: '接口不存在' });
