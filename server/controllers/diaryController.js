@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Diary from '../models/diary.js';
+import { validationResult } from 'express-validator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,151 +27,218 @@ const writeDiaries = (diaries) => {
 };
 
 // 获取公开游记列表
-export const getDiaries = (req, res) => {
+export const getDiaries = async (req, res) => {
   try {
-    const { page = 1, limit = 10, keyword = '' } = req.query;
-    const diaries = readDiaries();
+    const { page = 1, limit = 10, keyword } = req.query;
+    const query = { status: 'approved' };
     
-    let filteredDiaries = diaries
-      .filter(diary => diary.status === 'approved') // 只返回审核通过的
-      .filter(diary => 
-        diary.title.includes(keyword) || 
-        diary.content.includes(keyword)
-      );
+    if (keyword) {
+      query.$or = [
+        { title: { $regex: keyword, $options: 'i' } },
+        { content: { $regex: keyword, $options: 'i' } }
+      ];
+    }
 
-    const startIndex = (page - 1) * limit;
-    const endIndex = page * limit;
-    const paginatedDiaries = filteredDiaries.slice(startIndex, endIndex);
+    const diaries = await Diary.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('author', 'username nickname avatar');
+
+    const total = await Diary.countDocuments(query);
 
     res.json({
-      total: filteredDiaries.length,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      data: paginatedDiaries
+      diaries,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
     });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
 // 获取游记详情
-export const getDiaryById = (req, res) => {
+export const getDiaryById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const diaries = readDiaries();
-    const diary = diaries.find(d => d.id === id);
-
+    const diary = await Diary.findById(req.params.id)
+      .populate('author', 'username nickname avatar');
+    
     if (!diary) {
       return res.status(404).json({ message: '游记不存在' });
     }
 
+    if (diary.status !== 'approved' && (!req.user || diary.author._id.toString() !== req.user.id)) {
+      return res.status(403).json({ message: '无权访问该游记' });
+    }
+
     res.json(diary);
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
 // 获取我的游记列表
-export const getMyDiaries = (req, res) => {
+export const getMyDiaries = async (req, res) => {
   try {
-    const { id: userId } = req.user;
-    const diaries = readDiaries();
-    const myDiaries = diaries.filter(diary => diary.userId === userId);
-
-    res.json(myDiaries);
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+    const diaries = await Diary.find({ author: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(diaries);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
 // 创建游记
-export const createDiary = (req, res) => {
+export const createDiary = async (req, res) => {
   try {
-    const { id: userId } = req.user;
-    const { title, content, images, video } = req.body;
-
-    if (!title || !content) {
-      return res.status(400).json({ message: '标题和内容为必填项' });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
 
-    const diaries = readDiaries();
-    const newDiary = {
-      id: Date.now().toString(),
-      userId,
+    const { title, content, images, video } = req.body;
+    const diary = new Diary({
       title,
       content,
-      images: images || [],
-      video: video || '',
-      status: 'pending', // 待审核状态
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+      images,
+      video,
+      author: req.user.id,
+      status: 'pending'
+    });
 
-    diaries.push(newDiary);
-    writeDiaries(diaries);
-
-    res.status(201).json(newDiary);
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+    const savedDiary = await diary.save();
+    res.status(201).json(savedDiary);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
 // 修改游记
-export const updateDiary = (req, res) => {
+export const updateDiary = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { id: userId } = req.user;
-    const { title, content, images, video } = req.body;
-
-    const diaries = readDiaries();
-    const diaryIndex = diaries.findIndex(d => d.id === id);
-
-    if (diaryIndex === -1) {
+    const diary = await Diary.findById(req.params.id);
+    
+    if (!diary) {
       return res.status(404).json({ message: '游记不存在' });
     }
 
-    if (diaries[diaryIndex].userId !== userId) {
-      return res.status(403).json({ message: '无权修改此游记' });
+    if (diary.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: '无权修改该游记' });
     }
 
-    diaries[diaryIndex] = {
-      ...diaries[diaryIndex],
-      title: title || diaries[diaryIndex].title,
-      content: content || diaries[diaryIndex].content,
-      images: images || diaries[diaryIndex].images,
-      video: video || diaries[diaryIndex].video,
-      status: 'pending', // 修改后需要重新审核
-      updatedAt: new Date().toISOString()
-    };
+    const { title, content, images, video } = req.body;
+    diary.title = title;
+    diary.content = content;
+    diary.images = images;
+    diary.video = video;
+    diary.status = 'pending'; // 修改后需要重新审核
 
-    writeDiaries(diaries);
-    res.json(diaries[diaryIndex]);
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+    const updatedDiary = await diary.save();
+    res.json(updatedDiary);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
 
 // 删除游记
-export const deleteDiary = (req, res) => {
+export const deleteDiary = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { id: userId } = req.user;
-    const diaries = readDiaries();
-    const diaryIndex = diaries.findIndex(d => d.id === id);
-
-    if (diaryIndex === -1) {
+    const diary = await Diary.findById(req.params.id);
+    
+    if (!diary) {
       return res.status(404).json({ message: '游记不存在' });
     }
 
-    if (diaries[diaryIndex].userId !== userId) {
-      return res.status(403).json({ message: '无权删除此游记' });
+    if (diary.author.toString() !== req.user.id) {
+      return res.status(403).json({ message: '无权删除该游记' });
     }
 
-    diaries.splice(diaryIndex, 1);
-    writeDiaries(diaries);
+    await diary.remove();
+    res.json({ message: '游记已删除' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
-    res.json({ message: '删除成功' });
-  } catch (error) {
-    res.status(500).json({ message: '服务器错误' });
+// 获取所有游记（管理员）
+export const getAdminDiaries = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const query = {};
+    
+    if (status) {
+      query.status = status;
+    }
+
+    const diaries = await Diary.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .populate('author', 'username nickname avatar');
+
+    const total = await Diary.countDocuments(query);
+
+    res.json({
+      diaries,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 更新游记状态（管理员）
+export const updateDiaryStatus = async (req, res) => {
+  try {
+    const diary = await Diary.findById(req.params.id);
+    
+    if (!diary) {
+      return res.status(404).json({ message: '游记不存在' });
+    }
+
+    const { status, reason } = req.body;
+    
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: '无效的状态值' });
+    }
+
+    if (status === 'rejected' && !reason) {
+      return res.status(400).json({ message: '拒绝时必须提供原因' });
+    }
+
+    diary.status = status;
+    diary.rejectReason = status === 'rejected' ? reason : undefined;
+    diary.reviewedAt = new Date();
+    diary.reviewedBy = req.user.id;
+
+    const updatedDiary = await diary.save();
+    res.json(updatedDiary);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 删除游记（管理员）
+export const deleteDiaryByAdmin = async (req, res) => {
+  try {
+    const diary = await Diary.findById(req.params.id);
+    
+    if (!diary) {
+      return res.status(404).json({ message: '游记不存在' });
+    }
+
+    await diary.remove();
+    res.json({ message: '游记已删除' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

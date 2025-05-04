@@ -1,3 +1,11 @@
+/*
+ * @Author: bai_xiaobaila 2108331911@qq.com
+ * @Date: 2025-05-04 19:46:18
+ * @LastEditors: bai_xiaobaila 2108331911@qq.com
+ * @LastEditTime: 2025-05-05 00:26:35
+ * @FilePath: \Code\travel-diary-platform\server\routes\diary.js
+ * @Description: 游记相关路由
+ */
 import express from 'express';
 import { 
   getDiaries, 
@@ -5,28 +13,29 @@ import {
   getMyDiaries, 
   createDiary, 
   updateDiary, 
-  deleteDiary 
+  deleteDiary,
+  updateDiaryStatus,
+  deleteDiaryByAdmin,
+  getAdminDiaries
 } from '../controllers/diaryController.js';
 import auth from '../middlewares/auth.js';
+import adminAuth from '../middlewares/adminAuth.js';
 
 const router = express.Router();
 
-// 获取公开游记列表（首页）
+// 公共接口
 router.get('/diaries', getDiaries);
-
-// 获取游记详情
 router.get('/diary/:id', getDiaryById);
 
-// 获取我的游记列表（需要登录）
+// 需要用户登录的接口
 router.get('/diaries/mine', auth, getMyDiaries);
-
-// 新建游记（需要登录）
 router.post('/diary', auth, createDiary);
-
-// 修改游记（需要登录）
 router.put('/diary/:id', auth, updateDiary);
-
-// 删除游记（需要登录）
 router.delete('/diary/:id', auth, deleteDiary);
+
+// 管理员接口
+router.get('/admin/diaries', adminAuth, getAdminDiaries);
+router.put('/diary/:id/status', adminAuth, updateDiaryStatus);
+router.delete('/diary/:id/delete', adminAuth, deleteDiaryByAdmin);
 
 export default router;

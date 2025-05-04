@@ -1,3 +1,11 @@
+/*
+ * @Author: bai_xiaobaila 2108331911@qq.com
+ * @Date: 2025-05-04 19:46:18
+ * @LastEditors: bai_xiaobaila 2108331911@qq.com
+ * @LastEditTime: 2025-05-05 00:25:04
+ * @FilePath: \Code\travel-diary-platform\server\routes\upload.js
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
@@ -41,18 +49,49 @@ const upload = multer({
 router.post('/image', auth, upload.single('file'), (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: '请选择要上传的图片' });
+      return res.status(400).json({
+        code: 400,
+        msg: '没有上传文件',
+        data: null
+      });
     }
-
-    // 返回文件访问URL
-    const fileUrl = `/uploads/${req.file.filename}`;
+    
+    // 修改：返回完整的访问URL
+    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    
     res.json({
-      url: fileUrl,
-      message: '上传成功'
+      code: 200,
+      msg: '上传成功',
+      data: {
+        url: fileUrl  // 使用完整URL
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: '文件上传失败' });
+    console.error('上传错误:', error);
+    res.status(500).json({
+      code: 500,
+      msg: error.message || '上传失败',
+      data: null
+    });
   }
+});
+
+// 添加在路由定义后
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        code: 400,
+        message: '文件大小不能超过5MB',
+        data: null
+      });
+    }
+  }
+  res.status(500).json({
+    code: 500,
+    message: error.message || '文件上传失败',
+    data: null
+  });
 });
 
 export default router;
