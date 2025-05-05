@@ -22,5 +22,12 @@
     "nickname": "测试22",
     "avatar": "/static/default-avatar.png",
     "createdAt": "2025-05-04T08:02:44.547Z"
+  },
+  {
+    "id": "1746445164053",
+    "username": "testuser",
+    "nickname": "测试用户",
+    "avatar": "/static/avatars/default.png",
+    "email": "test@example.com"
   }
 ]

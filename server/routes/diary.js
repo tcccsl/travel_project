@@ -4,7 +4,7 @@
  * @LastEditors: bai_xiaobaila 2108331911@qq.com
  * @LastEditTime: 2025-05-05 00:26:35
  * @FilePath: \Code\travel-diary-platform\server\routes\diary.js
- * @Description: 游记相关路由
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
 import express from 'express';
 import { 
@@ -13,29 +13,28 @@ import {
   getMyDiaries, 
   createDiary, 
   updateDiary, 
-  deleteDiary,
-  updateDiaryStatus,
-  deleteDiaryByAdmin,
-  getAdminDiaries
+  deleteDiary 
 } from '../controllers/diaryController.js';
 import auth from '../middlewares/auth.js';
-import adminAuth from '../middlewares/adminAuth.js';
 
 const router = express.Router();
 
-// 公共接口
-router.get('/diaries', getDiaries);
-router.get('/diary/:id', getDiaryById);
-
-// 需要用户登录的接口
+// 获取我的游记列表（需要登录）- 必须放在 :id 路由之前
 router.get('/diaries/mine', auth, getMyDiaries);
-router.post('/diary', auth, createDiary);
-router.put('/diary/:id', auth, updateDiary);
-router.delete('/diary/:id', auth, deleteDiary);
 
-// 管理员接口
-router.get('/admin/diaries', adminAuth, getAdminDiaries);
-router.put('/diary/:id/status', adminAuth, updateDiaryStatus);
-router.delete('/diary/:id/delete', adminAuth, deleteDiaryByAdmin);
+// 获取公开游记列表（首页）
+router.get('/diaries', getDiaries);
+
+// 获取游记详情
+router.get('/diaries/:id', getDiaryById);
+
+// 新建游记（需要登录）
+router.post('/diaries', auth, createDiary);
+
+// 修改游记（需要登录）
+router.put('/diaries/:id', auth, updateDiary);
+
+// 删除游记（需要登录）
+router.delete('/diaries/:id', auth, deleteDiary);
 
 export default router;
