@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API 测试</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h2>用户功能测试</h2>
+    
+    <div>
+        <h3>注册</h3>
+        <input id="reg-username" placeholder="用户名" /><br>
+        <input id="reg-password" placeholder="密码" /><br>
+        <input id="reg-nickname" placeholder="昵称" /><br>
+        <input id="reg-avatar" placeholder="头像URL" /><br>
+        <button onclick="register()">注册</button>
+    </div>
+
+    <div>
+        <h3>登录</h3>
+        <input id="login-username" placeholder="用户名" /><br>
+        <input id="login-password" placeholder="密码" /><br>
+        <button onclick="login()">登录</button>
+    </div>
+
+    <div>
+        <h3>获取用户信息</h3>
+        <button onclick="getUserInfo()">获取信息</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let token = '';
+
+        async function register() {
+            const data = {
+                username: document.getElementById('reg-username').value,
+                password: document.getElementById('reg-password').value,
+                nickname: document.getElementById('reg-nickname').value,
+                avatar: document.getElementById('reg-avatar').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+                if (result.token) {
+                    token = result.token;
+                }
+            } catch (error) {
+                document.getElementById('result').innerText = '错误：' + error.message;
+            }
+        }
+
+        async function login() {
+            const data = {
+                username: document.getElementById('login-username').value,
+                password: document.getElementById('login-password').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+                if (result.token) {
+                    token = result.token;
+                }
+            } catch (error) {
+                document.getElementById('result').innerText = '错误：' + error.message;
+            }
+        }
+
+        async function getUserInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/user/info`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const result = await response.json();
+                document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerText = '错误：' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
