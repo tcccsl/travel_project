@@ -124,10 +124,35 @@ export default {
       
       try {
         const adminStore = useAdminStore();
-        await adminStore.login({
+        
+        const response = await adminStore.login({
           username: this.formData.username,
           password: this.formData.password
         });
+        
+        // 直接从响应中尝试提取数据
+        const responseData = response.data;
+        
+        // 确保管理员数据已保存
+        if (responseData && responseData.code === 200 && responseData.data) {
+          const adminData = responseData.data;
+          
+          // 直接设置管理员数据
+          if (adminData.token && adminData.role) {
+            adminStore.setAdmin(adminData);
+          }
+        }
+        
+        // 如果仍然没有认证，尝试直接设置响应中的数据
+        if (!adminStore.isAuthenticated && responseData && responseData.data) {
+          const directData = responseData.data;
+          adminStore.adminToken = directData.token;
+          adminStore.role = directData.role;
+          
+          // 保存到本地存储
+          uni.setStorageSync('admin_token', directData.token);
+          uni.setStorageSync('admin_role', directData.role);
+        }
         
         // Show success message
         uni.showToast({
@@ -136,10 +161,23 @@ export default {
           duration: 1500
         });
         
-        // Navigate to admin page
+        // Navigate based on role
         setTimeout(() => {
-          uni.navigateTo({
-            url: '/pages/Admin/Admin'
+          // 确定跳转路径
+          let redirectPath = '/pages/Admin/Admin';
+          
+          if (adminStore.isAdmin || (responseData?.data?.role === 'admin')) {
+            // 管理员页面
+            redirectPath = '/pages/Admin/Admin';
+          } else if (adminStore.isAuditor || (responseData?.data?.role === 'auditor')) {
+            // 审核员页面
+            redirectPath = '/pages/Admin/Admin?role=auditor';
+          }
+          
+          uni.redirectTo({
+            url: redirectPath,
+            success: () => console.log('跳转成功'),
+            fail: (err) => console.error('跳转失败:', err)
           });
         }, 1500);
       } catch (error) {

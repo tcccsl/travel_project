@@ -135,7 +135,24 @@ export default {
   // Admin related endpoints
   admin: {
     login(credentials) {
-      return apiClient.post('/api/admin/login', credentials);
+      return apiClient.post('/api/admin/login', credentials)
+        .then(response => {
+          // 针对后端的特定响应格式进行处理
+          if (response.data && typeof response.data === 'object') {
+            // 标准格式: { code: 200, msg: "登录成功", data: { token: "...", role: "..." } }
+            if (response.data.code === 200 && response.data.data) {
+              return {
+                data: response.data.data
+              };
+            }
+          }
+          
+          return response;
+        })
+        .catch(error => {
+          console.error('管理员登录失败:', error.response || error);
+          throw error;
+        });
     },
     // Get all diaries for admin review
     getDiaries(params = {}) {

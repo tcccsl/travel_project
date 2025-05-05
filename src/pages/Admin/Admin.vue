@@ -3,7 +3,7 @@
     <view class="admin-panel">
       <!-- Header -->
       <view class="header">
-        <text class="title">游记管理</text>
+        <text class="title">{{ pageTitle }}</text>
         <view class="filter-container">
           <uni-data-select
             v-model="filter"
@@ -63,10 +63,18 @@
               <!-- Delete Button - for admin role only -->
               <view 
                 class="action-btn delete" 
-                v-if="adminStore.isAdmin"
+                v-if="adminStore.isAdmin && diary.status !== 'pending'"
                 @click="confirmDelete(diary.id)"
               >
                 <text class="btn-text">删除</text>
+              </view>
+              
+              <!-- View Button - for both roles -->
+              <view 
+                class="action-btn view" 
+                @click="viewDiary(diary.id)"
+              >
+                <text class="btn-text">查看</text>
               </view>
             </view>
           </view>
@@ -118,7 +126,8 @@ export default {
         { text: '待审核', value: 'pending' },
         { text: '已通过', value: 'approved' },
         { text: '已拒绝', value: 'rejected' }
-      ]
+      ],
+      pageTitle: '内容管理'
     }
   },
   computed: {
@@ -126,22 +135,46 @@ export default {
       return useAdminStore();
     }
   },
-  onLoad() {
-    // Initialize admin store
-    this.adminStore.init();
+  onLoad(options) {
+    // 初始化管理员存储
+    const adminStore = useAdminStore();
     
-    // Check if admin is authenticated
-    if (!this.adminStore.isAuthenticated) {
-      uni.navigateTo({
+    // 确保调用初始化方法
+    adminStore.init();
+    
+    // 检查管理员是否已认证
+    if (!adminStore.isAuthenticated) {
+      uni.redirectTo({
         url: '/pages/AdminLogin/AdminLogin'
       });
       return;
     }
     
-    // Load cached filter state
-    this.loadFilterState();
+    // 根据 URL 参数或存储中的角色设置页面
+    const roleFromQuery = options?.role;
     
-    // Fetch diaries
+    // 更新页面标题和筛选器
+    if (roleFromQuery === 'auditor' || adminStore.isAuditor) {
+      // 审核员视图
+      this.pageTitle = '游记审核';
+      // 审核员默认看到待审核的内容
+      this.filter = 'pending';
+    } else if (adminStore.isAdmin) {
+      // 管理员视图
+      this.pageTitle = '游记管理';
+      // 管理员默认看到所有内容
+      this.filter = '';
+    } else {
+      // 默认视图
+      this.pageTitle = '内容管理';
+    }
+    
+    // 仅在没有通过 URL 指定角色时加载过滤器状态
+    if (!roleFromQuery) {
+      this.loadFilterState();
+    }
+    
+    // 获取游记数据
     this.fetchDiaries();
   },
   methods: {
@@ -254,7 +287,7 @@ export default {
       }
       
       try {
-        await api.diaries.updateStatus(this.selectedDiaryId, {
+        await api.diaries.updateStatus(this.selectedDiaryId, { 
           status: 'rejected',
           rejectReason: reason
         });
@@ -265,7 +298,10 @@ export default {
           icon: 'success'
         });
         
-        // Close modal
+        // Reset selected diary
+        this.selectedDiaryId = null;
+        
+        // Close popup
         this.$refs.rejectPopup.close();
         
         // Refresh diaries
@@ -275,23 +311,26 @@ export default {
           title: '操作失败，请重试',
           icon: 'none'
         });
-      } finally {
-        this.selectedDiaryId = null;
       }
     },
     
     // Cancel reject
     cancelReject() {
-      this.$refs.rejectPopup.close();
       this.selectedDiaryId = null;
+      this.$refs.rejectPopup.close();
     },
     
-    // Confirm delete
+    // Confirm delete diary
     confirmDelete(id) {
+      this.selectedDiaryId = id;
+      
+      // Show confirmation dialog
       uni.showModal({
         title: '确认删除',
-        content: '确定要删除这篇游记吗？此操作不可恢复。',
-        confirmColor: '#dc3545',
+        content: '确定要删除该游记吗？此操作不可撤销。',
+        confirmText: '删除',
+        confirmColor: '#FF0000',
+        cancelText: '取消',
         success: (res) => {
           if (res.confirm) {
             this.deleteDiary(id);
@@ -334,6 +373,14 @@ export default {
             });
           }
         }
+      });
+    },
+    
+    // View diary
+    viewDiary(id) {
+      // Navigate to diary detail page
+      uni.navigateTo({
+        url: `/pages/DiaryDetail/DiaryDetail?id=${id}&admin=true`
       });
     }
   }
@@ -499,6 +546,10 @@ export default {
 
 .delete {
   background-color: #999;
+}
+
+.view {
+  background-color: #6c757d;
 }
 
 .btn-text {
