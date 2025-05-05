@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import userRoutes from './routes/user.js';
 import diaryRoutes from './routes/diary.js';
 import uploadRoutes from './routes/upload.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -52,6 +53,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // 添加上传路由
 app.use('/api/upload', uploadRoutes);
+
+// 添加管理员路由
+app.use('/api/admin', adminRoutes);
 
 app.use((req, res) => {
   console.log('404 Not Found:', req.method, req.url);

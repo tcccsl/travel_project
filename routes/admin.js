@@ -2,8 +2,12 @@ import express from 'express';
 import TravelNote from '../models/TravelNote.js';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
+import { login } from '../controllers/adminController.js';
 
 const router = express.Router();
+
+// 管理员登录路由
+router.post('/login', login);
 
 // 获取游记审核列表
 router.get('/notes', async (req, res) => {

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1",
+    "username": "admin",
+    "password": "admin123",
+    "role": "admin",
+    "createdAt": "2025-05-05T09:19:52.235Z"
+  },
+  {
+    "id": "2",
+    "username": "auditor",
+    "password": "audit123",
+    "role": "auditor",
+    "createdAt": "2025-05-05T09:19:52.237Z"
+  }
+]
