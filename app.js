@@ -45,9 +45,9 @@ app.use((req, res, next) => {
 
 app.use('/auth', userRoutes);
 
-// 添加游记路由 - 同时支持两个前缀
-app.use('/', diaryRoutes);  // 保留原始路径
-app.use('/api', diaryRoutes); // 新增API路径
+// 添加游记路由 - 同时支持多个前缀
+app.use('/', diaryRoutes);  // 支持 http://localhost:3000/diaries
+app.use('/api', diaryRoutes); // 支持 /api/diaries
 
 // 添加静态文件服务
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));

@@ -58,7 +58,7 @@ const writeAuditLogs = (logs) => {
 // 管理员登录路由
 router.post('/login', login);
 
-// 获取游记审核列表 (新路径)
+// 获取游记审核列表
 router.get('/diaries', (req, res) => {
   try {
     const { status, page = 1, limit = 10 } = req.query;
@@ -85,7 +85,22 @@ router.get('/diaries', (req, res) => {
       msg: "获取成功",
       data: {
         total,
-        items
+        page: parseInt(page),
+        limit: parseInt(limit),
+        list: items.map(diary => ({
+          id: diary.id,
+          title: diary.title,
+          content: diary.content,
+          location: diary.location || "",
+          authorId: diary.userId,
+          authorNickname: diary.authorNickname || "用户",
+          createTime: diary.createTime,
+          updateTime: diary.updateTime,
+          status: diary.status,
+          images: diary.images || [],
+          videos: diary.videos || [],
+          rejectReason: diary.rejectReason || ""
+        }))
       }
     });
   } catch (error) {
@@ -413,16 +428,172 @@ router.get('/diaries/:id', (req, res) => {
 });
 
 // 添加管理员删除游记的路由
+router.delete('/diary/:id/delete', (req, res) => {
+  try {
+    const { id } = req.params;
+    const diaries = readDiaries();
+    const diaryIndex = diaries.findIndex(d => d.id === id);
+    
+    if (diaryIndex === -1) {
+      return res.status(404).json({
+        code: 404,
+        msg: '游记不存在',
+        data: null
+      });
+    }
+    
+    // 执行删除操作
+    diaries.splice(diaryIndex, 1);
+    writeDiaries(diaries);
+    
+    // 记录审核日志
+    const auditLogs = readAuditLogs();
+    auditLogs.push({
+      id: Date.now().toString(),
+      noteId: id,
+      auditorId: 'admin',
+      action: 'deleted',
+      reason: '管理员删除',
+      createTime: new Date().toISOString()
+    });
+    
+    writeAuditLogs(auditLogs);
+    
+    res.json({
+      code: 200,
+      msg: '删除成功',
+      data: null
+    });
+  } catch (error) {
+    console.error('删除游记失败:', error);
+    res.status(500).json({
+      code: 500,
+      msg: '服务器错误',
+      data: null
+    });
+  }
+});
+
+// 更新游记状态
+router.put('/diary/:id/status', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectReason } = req.body;
+    
+    console.log('管理员更新游记状态:', { id, status, rejectReason });
+    
+    // 验证必填字段
+    if (!status || !['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({
+        code: 400,
+        msg: '状态无效，必须为 approved, rejected 或 pending',
+        data: null
+      });
+    }
+    
+    // 如果是拒绝状态，必须提供拒绝原因
+    if (status === 'rejected' && !rejectReason) {
+      return res.status(400).json({
+        code: 400,
+        msg: '拒绝时必须提供拒绝原因',
+        data: null
+      });
+    }
+    
+    const diaries = readDiaries();
+    const diaryIndex = diaries.findIndex(d => d.id === id);
+    
+    if (diaryIndex === -1) {
+      return res.status(404).json({
+        code: 404,
+        msg: '游记不存在',
+        data: null
+      });
+    }
+    
+    // 更新状态和拒绝原因
+    diaries[diaryIndex].status = status;
+    diaries[diaryIndex].rejectReason = status === 'rejected' ? rejectReason : '';
+    diaries[diaryIndex].updateTime = new Date().toISOString();
+    
+    writeDiaries(diaries);
+    
+    // 记录审核日志
+    const auditLogs = readAuditLogs();
+    auditLogs.push({
+      id: Date.now().toString(),
+      noteId: id,
+      auditorId: req.body.auditorId || 'admin',
+      action: status,
+      reason: rejectReason || '',
+      createTime: new Date().toISOString()
+    });
+    
+    writeAuditLogs(auditLogs);
+    
+    res.json({
+      code: 200,
+      msg: '状态更新成功',
+      data: {
+        id: diaries[diaryIndex].id,
+        status: diaries[diaryIndex].status
+      }
+    });
+  } catch (error) {
+    console.error('更新游记状态失败:', error);
+    res.status(500).json({
+      code: 500,
+      msg: '服务器错误',
+      data: null
+    });
+  }
+});
+
+// 兼容路径 - 管理员删除游记
 router.delete('/diaries/:id', (req, res) => {
-  // 标记为管理员请求
-  req.isAdmin = true;
-  
-  // 手动设置用户信息，因为这是管理员操作
-  req.user = { id: 'admin' };
-  
-  // 调用删除游记控制器
-  const { deleteDiary } = require('../controllers/diaryController.js');
-  deleteDiary(req, res);
+  try {
+    const { id } = req.params;
+    const diaries = readDiaries();
+    const diaryIndex = diaries.findIndex(d => d.id === id);
+    
+    if (diaryIndex === -1) {
+      return res.status(404).json({
+        code: 404,
+        msg: '游记不存在',
+        data: null
+      });
+    }
+    
+    // 执行删除操作
+    diaries.splice(diaryIndex, 1);
+    writeDiaries(diaries);
+    
+    // 记录审核日志
+    const auditLogs = readAuditLogs();
+    auditLogs.push({
+      id: Date.now().toString(),
+      noteId: id,
+      auditorId: 'admin',
+      action: 'deleted',
+      reason: '管理员删除',
+      createTime: new Date().toISOString()
+    });
+    
+    writeAuditLogs(auditLogs);
+    
+    res.json({
+      code: 200,
+      msg: '删除成功',
+      data: null
+    });
+  } catch (error) {
+    console.error('删除游记失败:', error);
+    res.status(500).json({
+      code: 500,
+      msg: '服务器错误',
+      data: null
+    });
+  }
 });
 
 export default router; 

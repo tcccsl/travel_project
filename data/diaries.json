@@ -221,9 +221,9 @@
       "http://localhost:3000/uploads/1746518214316-980016073.jpg"
     ],
     "videos": [],
-    "status": "pending",
+    "status": "approved",
     "createTime": "2025-05-06T07:25:35.860Z",
-    "updateTime": "2025-05-06T07:56:56.122Z",
+    "updateTime": "2025-05-06T08:38:55.766Z",
     "rejectReason": ""
   },
   {
@@ -237,9 +237,9 @@
       "http://localhost:3000/uploads/1746520052607-435015077.jpg"
     ],
     "videos": [],
-    "status": "pending",
+    "status": "rejected",
     "createTime": "2025-05-06T08:27:01.265Z",
-    "updateTime": "2025-05-06T08:27:34.193Z",
-    "rejectReason": ""
+    "updateTime": "2025-05-06T08:38:21.824Z",
+    "rejectReason": "11"
   }
 ]
