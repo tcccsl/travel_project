@@ -22,19 +22,28 @@ const router = express.Router();
 // 获取公开游记列表（首页）
 router.get('/diaries', getDiaries);
 
-// 获取游记详情
-router.get('/diary/:id', getDiaryById);
-
 // 获取我的游记列表（需要登录）
 router.get('/diaries/mine', auth, getMyDiaries);
+
+// 获取游记详情
+router.get('/diaries/:id', getDiaryById);
 
 // 新建游记（需要登录）
 router.post('/diaries', auth, createDiary);
 
 // 修改游记（需要登录）
-router.put('/diary/:id', auth, updateDiary);
+router.put('/diaries/:id', auth, updateDiary);
 
 // 删除游记（需要登录）
-router.delete('/diary/:id', auth, deleteDiary);
+router.delete('/diaries/:id', auth, deleteDiary);
+
+// 兼容旧路径(DELETE /diary/:id/delete)
+router.delete('/diary/:id/delete', auth, (req, res) => {
+  console.log('使用兼容删除路由:', req.params.id);
+  // 确保参数正确传递
+  const originalParams = req.params;
+  req.params = { id: originalParams.id };
+  deleteDiary(req, res);
+});
 
 export default router;

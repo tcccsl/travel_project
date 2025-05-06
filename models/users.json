@@ -30,5 +30,13 @@
     "nickname": "aa",
     "avatar": "/static/default-avatar.png",
     "createdAt": "2025-05-05T08:53:19.022Z"
+  },
+  {
+    "id": "1746515448620",
+    "username": "13701542874",
+    "password": "$2b$10$x8sfV7sFH0EUl2Whml4z8eNAZCPpJKG0PSiiuDgydLoZAxn4I37fK",
+    "nickname": "sdsa",
+    "avatar": "/static/default-avatar.png",
+    "createdAt": "2025-05-06T07:10:48.677Z"
   }
 ]
