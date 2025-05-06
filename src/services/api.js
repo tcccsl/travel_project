@@ -86,7 +86,46 @@ export default {
       });
     },
     getById(id) {
-      return apiClient.get(`/diaries/${id}`);
+      console.log('获取游记详情, ID:', id);
+      return apiClient.get(`/diaries/${id}`)
+        .then(response => {
+          console.log('获取游记详情原始响应:', response);
+          
+          // 检查响应格式并适应不同的数据结构
+          if (response.data && typeof response.data === 'object') {
+            // 标准格式: { code: 200, msg: "获取成功", data: { ... } }
+            if (response.data.code === 200 && response.data.data) {
+              console.log('标准格式响应:', response.data);
+              return response.data;
+            }
+            
+            // 直接返回数据对象格式
+            if (response.data.id && (response.data.title || response.data.content)) {
+              console.log('直接数据对象格式:', response.data);
+              return {
+                code: 200,
+                msg: "获取成功",
+                data: response.data
+              };
+            }
+            
+            // 其他格式，尝试适配
+            console.log('其他格式响应:', response.data);
+            return {
+              code: response.data.code || 200,
+              msg: response.data.msg || "获取成功",
+              data: response.data.data || response.data
+            };
+          }
+          
+          // 无法识别的格式
+          console.warn('无法识别的响应格式:', response);
+          return response;
+        })
+        .catch(error => {
+          console.error('获取游记详情失败:', error.response || error);
+          throw error;
+        });
     },
     create(diary) {
       return apiClient.post('/diaries', diary);  
@@ -163,6 +202,24 @@ export default {
           status: params.status || ''
         }
       });
+    },
+    // 获取单个游记详情（管理员视图）
+    getDiaryById(id) {
+      console.log('管理员获取游记详情, ID:', id);
+      return apiClient.get(`/api/admin/diaries/${id}`)
+        .then(response => {
+          console.log('管理员获取游记详情原始响应:', response);
+          // 检查响应格式
+          if (response.data && typeof response.data === 'object') {
+            console.log('管理员获取游记详情数据:', response.data);
+            return response.data;
+          }
+          return response;
+        })
+        .catch(error => {
+          console.error('管理员获取游记详情失败:', error.response || error);
+          throw error;
+        });
     }
   },
 

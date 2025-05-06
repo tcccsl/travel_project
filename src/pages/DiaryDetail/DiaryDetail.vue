@@ -152,12 +152,16 @@ export default {
       error: false,
       cacheKey: 'diary_detail_cache_',
       currentImageIndex: 0,
-      showShareMenu: false
+      showShareMenu: false,
+      isAdmin: false
     }
   },
   onLoad(options) {
     // Get diary ID from params
     this.id = options.id;
+    
+    // 检查是否是管理员视图
+    this.isAdmin = options.admin === 'true';
     
     if (!this.id) {
       this.error = true;
@@ -177,14 +181,45 @@ export default {
       this.loading = true;
       
       try {
-        const response = await api.diaries.getById(this.id);
-        this.diary = response.data;
+        let response;
+        if (this.isAdmin) {
+          // 如果是管理员，尝试使用管理员API获取游记
+          try {
+            response = await api.admin.getDiaryById(this.id);
+          } catch (adminError) {
+            response = await api.diaries.getById(this.id);
+          }
+        } else {
+          // 普通用户视图
+          response = await api.diaries.getById(this.id);
+        }
+        
+        // 解析响应数据
+        if (response && response.code === 200 && response.data) {
+          // 直接使用后端返回的数据
+          this.diary = response.data;
+          
+          // 检查并调整游记数据
+          if (!this.diary.createdAt && this.diary.createTime) {
+            this.diary.createdAt = this.diary.createTime;
+          }
+          
+          // 检查封面图片
+          if (!this.diary.coverImage && this.diary.images && this.diary.images.length > 0) {
+            this.diary.coverImage = this.diary.images[0];
+          }
+          
+          // 检查作者头像
+          if (!this.diary.authorAvatar) {
+            this.diary.authorAvatar = '/static/default-avatar.png';
+          }
+        } else {
+          this.error = true;
+        }
         
         // Cache the data
         this.cacheData();
-        this.error = false;
       } catch (error) {
-        console.error('Failed to fetch diary:', error);
         this.error = true;
       } finally {
         this.loading = false;
@@ -201,7 +236,7 @@ export default {
         
         uni.setStorageSync(this.cacheKey + this.id, JSON.stringify(cacheData));
       } catch (e) {
-        console.error('Failed to cache data:', e);
+        // 缓存失败，但非致命错误，可以继续
       }
     },
     
@@ -217,14 +252,12 @@ export default {
           // Check if cache is older than 30 minutes (1800000 ms)
           const isExpired = (Date.now() - parsedData.timestamp) > 1800000;
           
-          if (isExpired) {
-            console.log('Cache expired, fetching fresh data');
-          } else {
+          if (!isExpired) {
             this.loading = false;
           }
         }
       } catch (e) {
-        console.error('Failed to load cached data:', e);
+        // 缓存加载失败，但非致命错误，可以继续
       }
     },
     
@@ -252,10 +285,10 @@ export default {
         withShareTicket: true,
         menus: ['shareAppMessage', 'shareTimeline'],
         success: () => {
-          console.log('Show share menu success');
+          // 分享菜单显示成功
         },
         fail: (err) => {
-          console.error('Show share menu failed:', err);
+          // 分享菜单显示失败，使用自定义分享选项
           this.showCustomShareOptions();
         }
       });
@@ -337,7 +370,6 @@ export default {
     
     // Handle image error
     handleImageError(e) {
-      console.error('Image loading error:', e);
       // Replace broken images with a default one
       const index = e.target.dataset.index;
       if (index !== undefined && this.diary && this.diary.images) {
