@@ -34,10 +34,11 @@
 
 <script>
 import api from '@/services/api';  // 导入API服务
+import { getUploadParams } from '@/utils/upload.js';
 
 export default {
   props: {
-    value: {
+    modelValue: {
       type: String,
       default: ''
     },
@@ -54,7 +55,7 @@ export default {
     }
   },
   watch: {
-    value: {
+    modelValue: {
       handler(newVal) {
         this.videoUrl = newVal;
       },
@@ -98,61 +99,39 @@ export default {
     },
     
     // 上传视频到服务器
-    uploadVideo(filePath) {
+    async uploadVideo(selected) {
       this.uploading = true;
       this.uploadProgress = 0;
-      
-      // 先将视频转换为DataURL
-      this.videoToDataURL(filePath).then(dataURL => {
-        // 打印视频DataURL信息
-        console.log('视频转换为dataURL结果前200字符:', dataURL.substring(0, 200));
-        console.log('视频dataURL总长度:', dataURL.length);
-        
-        // 测试视频dataURL
-        this.testVideoDataURL(dataURL);
-        
-        // 直接使用dataURL作为视频源
-        this.videoUrl = dataURL;
-        this.$emit('input', dataURL);
-        
-        // 创建一个新标签页测试视频
-        this.openVideoInNewTab(dataURL);
-        
-        // 仍然上传到服务器，但不依赖其返回值
-        api.upload.video(dataURL)
-          .then(response => {
-            console.log('服务器返回的视频URL:', response.data.url);
-            console.log('我们使用的本地视频dataURL:', dataURL.substring(0, 100) + '...');
-            
-            // 检查服务器URL是否可用
-            this.checkVideoUrlAccess(response.data.url);
-            
-            // 不再设置服务器返回的URL
-            // this.videoUrl = response.data.url;
-            // this.$emit('input', response.data.url);
-            
-            uni.showToast({
-              title: '视频处理成功',
-              icon: 'success'
-            });
-            
-            this.uploading = false;
-            this.uploadProgress = 100;
-          })
-          .catch(error => {
-            console.error('Upload failed:', error);
-            // 由于已经使用本地dataURL，所以上传失败不影响显示
-            // 仅记录错误信息
-            console.warn('视频上传到服务器失败，但本地显示仍然有效');
-            
-            this.uploading = false;
-            this.uploadProgress = 100;
-          });
-      }).catch(error => {
-        console.error('Convert video failed:', error);
-        this.handleUploadError('视频转换失败');
+      try {
+        let fileOrPath = selected;
+        // H5 平台且是 blob: URL，需转为 File
+        if (
+          process.env.UNI_PLATFORM === 'h5' &&
+          typeof selected === 'string' &&
+          selected.startsWith('blob:')
+        ) {
+          const response = await fetch(selected);
+          const blob = await response.blob();
+          // 你可以自定义文件名和类型
+          fileOrPath = new File([blob], 'video.mp4', { type: blob.type || 'video/mp4' });
+        }
+        const token = uni.getStorageSync('token');
+        const params = getUploadParams(fileOrPath, token);
+        const uploadResponse = await api.upload.video(params);
+        if (uploadResponse && (uploadResponse.data || uploadResponse.url)) {
+          const videoUrl = uploadResponse.data ? uploadResponse.data.url : uploadResponse.url;
+          this.videoUrl = videoUrl;
+          this.$emit('update:modelValue', videoUrl);
+          uni.showToast({ title: '视频上传成功', icon: 'success' });
+        } else {
+          throw new Error('未获取到有效的视频URL');
+        }
+      } catch (error) {
+        this.handleUploadError('视频上传失败');
+      } finally {
         this.uploading = false;
-      });
+        this.uploadProgress = 100;
+      }
     },
     
     // 将视频转换为DataURL
@@ -286,7 +265,7 @@ export default {
     // 处理上传错误
     handleUploadError(message) {
       this.videoUrl = '';
-      this.$emit('input', '');
+      this.$emit('update:modelValue', '');
       
       uni.showToast({
         title: `视频上传失败: ${message}`,
@@ -302,7 +281,7 @@ export default {
         success: (res) => {
           if (res.confirm) {
             this.videoUrl = '';
-            this.$emit('input', '');
+            this.$emit('update:modelValue', '');
           }
         }
       });

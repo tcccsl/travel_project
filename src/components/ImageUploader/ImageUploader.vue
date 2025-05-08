@@ -35,6 +35,7 @@
 
 <script>
 import api from '@/services/api';  // 导入API服务
+import { getUploadParams } from '@/utils/upload.js';
 
 export default {
   props: {
@@ -235,8 +236,8 @@ export default {
       });
       
       try {
-      for (let i = 0; i < images.length; i++) {
-        const image = images[i];
+        for (let i = 0; i < images.length; i++) {
+          const image = images[i];
           console.log(`----- 处理第 ${i + 1} 张图片 -----`);
           console.log('图片信息:', {
             id: image.id,
@@ -251,68 +252,11 @@ export default {
           
           if (index !== -1) {
             try {
-              let uploadResponse;
-              
-              if (image.file.path.startsWith('blob:')) {
-                console.log('检测到 blob URL，开始获取文件内容');
-                try {
-                  const response = await fetch(image.file.path);
-                  console.log('fetch 响应状态:', response.status);
-                  const blob = await response.blob();
-                  console.log('获取到的 blob 信息:', {
-                    size: blob.size,
-                    type: blob.type
-                  });
-                  
-                  const formData = new FormData();
-                  formData.append('file', blob, 'image.jpg');
-                  console.log('FormData 创建成功，准备上传');
-                  
-                  console.log('开始调用 api.upload.file');
-                  uploadResponse = await api.upload.file(formData);
-                  console.log('api.upload.file 调用成功，响应:', uploadResponse);
-                } catch (error) {
-                  console.error('处理 blob URL 过程出错:', error);
-                  throw error;
-                }
-              } else {
-                console.log('使用 uni.uploadFile 上传本地文件');
-                uploadResponse = await new Promise((resolve, reject) => {
-                  const uploadTask = uni.uploadFile({
-                    url: 'http://localhost:3000/api/upload/image',
-                    filePath: image.file.path,
-                    name: 'file',
-                    header: {
-                      'Authorization': `Bearer ${uni.getStorageSync('token')}`,
-                      'Content-Type': 'multipart/form-data'
-                    },
-                    success: (res) => {
-                      console.log('uni.uploadFile 成功响应:', res);
-                      if (res.statusCode === 200) {
-                        try {
-                          const result = JSON.parse(res.data);
-                          resolve(result);
-                        } catch (e) {
-                          console.error('解析响应数据失败:', e);
-                          reject(new Error('解析响应数据失败'));
-                        }
-                      } else {
-                        reject(new Error(`上传失败，状态码: ${res.statusCode}`));
-                      }
-                    },
-                    fail: (error) => {
-                      console.error('uni.uploadFile 失败:', error);
-                      reject(error);
-                    }
-                  });
-                  
-                  uploadTask.onProgressUpdate((res) => {
-                    console.log('上传进度:', res.progress + '%');
-                  });
-                });
-              }
-              
-              console.log('处理上传响应:', uploadResponse);
+              // 统一参数组装
+              const params = getUploadParams(image.file, uni.getStorageSync('token'));
+              console.log('上传图片参数:', params);
+              const uploadResponse = await api.upload.image(params);
+
               if (uploadResponse && (uploadResponse.data || uploadResponse.url)) {
                 const imageUrl = uploadResponse.data ? uploadResponse.data.url : uploadResponse.url;
                 console.log('获取到的图片URL:', imageUrl);
@@ -329,7 +273,6 @@ export default {
                 console.error('未获取到有效的图片URL:', uploadResponse);
                 throw new Error('未获取到有效的图片URL');
               }
-              
             } catch (error) {
               console.error('上传过程出错:', error);
               this.$set(this.imageList, index, {
@@ -337,10 +280,10 @@ export default {
                 status: 'fail'
               });
               
-          uni.showToast({
+              uni.showToast({
                 title: '图片上传失败',
-            icon: 'none'
-          });
+                icon: 'none'
+              });
             }
           } else {
             console.error('无法找到图片在列表中的位置:', image.id);

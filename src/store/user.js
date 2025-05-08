@@ -46,6 +46,9 @@ export const useUserStore = defineStore('user', {
       
       // 持久化存储
       uni.setStorageSync('user_token', this.token);
+      uni.setStorageSync('token', this.token);
+      console.log('setUser called, token:', this.token); 
+
       uni.setStorageSync('user_info', {
         id: this.userId,
         username: this.username,

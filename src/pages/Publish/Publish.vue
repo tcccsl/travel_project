@@ -73,6 +73,7 @@ import ImageUploader from '@/components/ImageUploader/ImageUploader.vue';
 import VideoUploader from '@/components/VideoUploader/VideoUploader.vue';
 import api from '@/services/api.js';
 
+
 export default {
   components: {
     ImageUploader,
@@ -208,6 +209,7 @@ export default {
       if (this.isSubmitting) return;
       
       if (this.validateForm()) {
+        console.log('提交前视频URL:', this.formData.video);
         this.submitDiary();
       }
     },

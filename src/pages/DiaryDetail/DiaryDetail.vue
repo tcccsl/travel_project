@@ -40,26 +40,6 @@
           </view>
         </view>
         
-        <!-- Video (if exists) -->
-        <view class="media-section" v-if="diary.video">
-          <view class="section-title">
-            <text class="title-icon"><i class="fas fa-film"></i></text>
-            <text class="title-text">旅行视频</text>
-          </view>
-          
-          <view class="video-container">
-            <video 
-              class="diary-video" 
-              :src="diary.video" 
-              controls 
-              :poster="diary.images && diary.images.length > 0 ? diary.images[0] : ''" 
-              show-play-btn="true"
-              object-fit="cover"
-              preload="auto"
-            ></video>
-          </view>
-        </view>
-        
         <!-- Images Gallery -->
         <view class="media-section" v-if="diary.images && diary.images.length > 0">
           <view class="section-title">
@@ -118,6 +98,24 @@
           
           <view class="diary-content">
             <rich-text :nodes="diary.content"></rich-text>
+          </view>
+        </view>
+        <!-- 视频展示区：如果有视频则显示 -->
+        <view class="media-section" v-if="diary.video">
+          <view class="section-title">
+            <text class="title-icon"><i class="fas fa-film"></i></text>
+            <text class="title-text">旅行视频</text>
+          </view>
+          <view class="video-container">
+            <video 
+              class="diary-video" 
+              :src="diary.video" 
+              controls 
+              :poster="diary.images && diary.images.length > 0 ? diary.images[0] : ''" 
+              show-play-btn="true"
+              object-fit="cover"
+              preload="auto"
+            ></video>
           </view>
         </view>
       </view>
@@ -198,6 +196,7 @@ export default {
         if (response && response.code === 200 && response.data) {
           // 直接使用后端返回的数据
           this.diary = response.data;
+          console.log('diary detail:', this.diary);
           
           // 检查并调整游记数据
           if (!this.diary.createdAt && this.diary.createTime) {

@@ -193,10 +193,12 @@ export default {
       // 如果静态账号不匹配，可以尝试调用API (如果后端可用)
       try {
         const userStore = useUserStore();
+        console.log('调用 userStore.login 前');
         await userStore.login({
           username: this.formData.username,
           password: this.formData.password
         });
+        console.log('调用 userStore.login 后');
         
         // Save username if remember is checked
         if (this.remember) {
