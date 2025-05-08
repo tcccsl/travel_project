@@ -38,5 +38,21 @@
     "nickname": "sdsa",
     "avatar": "/static/default-avatar.png",
     "createdAt": "2025-05-06T07:10:48.677Z"
+  },
+  {
+    "id": "1746595568714",
+    "username": "19812345678",
+    "password": "$2b$10$q24x1zrLlT2UOSNOSGHbX.0D0BIJdoZWjnYWkjAKHPiGQW8B2plQe",
+    "nickname": "xioabai",
+    "avatar": "/static/default-avatar.png",
+    "createdAt": "2025-05-07T05:26:08.813Z"
+  },
+  {
+    "id": "1746703146979",
+    "username": "19811112222",
+    "password": "$2b$10$Ym12IS3TrMYDl7nn9AvMf.xs3/1QC/KVt5PTq81rRBc3hjv0GRuBe",
+    "nickname": "xioa",
+    "avatar": "/static/default-avatar.png",
+    "createdAt": "2025-05-08T11:19:07.142Z"
   }
 ]

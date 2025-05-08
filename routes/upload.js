@@ -76,13 +76,68 @@ router.post('/image', auth, upload.single('file'), (req, res) => {
   }
 });
 
+// 视频文件过滤器
+const videoFileFilter = (req, file, cb) => {
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/avi'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('不支持的视频文件类型'));
+  }
+};
+
+const videoUpload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB
+  },
+  fileFilter: videoFileFilter
+});
+
+// 视频上传接口
+router.post('/video', auth, videoUpload.single('file'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        code: 400,
+        msg: '没有上传文件',
+        data: null
+      });
+    }
+    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    res.json({
+      code: 200,
+      msg: '上传成功',
+      data: {
+        url: fileUrl
+      }
+    });
+  } catch (error) {
+    console.error('视频上传错误:', error);
+    res.status(500).json({
+      code: 500,
+      msg: error.message || '上传失败',
+      data: null
+    });
+  }
+});
+
 // 添加在路由定义后
 router.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
+    // 针对图片大小超限
+    if (req.originalUrl.includes('/image') && error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         code: 400,
-        message: '文件大小不能超过5MB',
+        message: '图片文件大小不能超过5MB',
+        data: null
+      });
+    }
+    // 针对视频大小超限
+    if (req.originalUrl.includes('/video') && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        code: 400,
+        message: '视频文件大小不能超过50MB',
         data: null
       });
     }

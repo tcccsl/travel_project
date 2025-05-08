@@ -26,6 +26,48 @@ const __dirname = path.dirname(__filename);
 const diariesFilePath = path.join(__dirname, '../data/diaries.json');
 const auditLogsFilePath = path.join(__dirname, '../data/auditLogs.json');
 
+/**
+ * @swagger
+ * /api/diary:
+ *   get:
+ *     summary: 获取游记列表
+ *     description: 获取所有游记的列表
+ *     tags: [游记管理]
+ *     responses:
+ *       200:
+ *         description: 成功获取游记列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       content:
+ *                         type: string
+ *                       images:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       video:
+ *                         type: string
+ *                       status:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *       500:
+ *         description: 服务器错误
+ */
+
 // 读取游记数据 - 辅助函数
 const readDiaries = () => {
   try {

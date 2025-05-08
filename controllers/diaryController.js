@@ -68,6 +68,7 @@ export const getDiaries = (req, res) => {
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
         rejectReason: diary.rejectReason || ""
       }))
     });
@@ -110,6 +111,7 @@ export const getDiaryById = (req, res) => {
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
         rejectReason: diary.rejectReason || ""
       }
     });
@@ -159,6 +161,7 @@ export const getMyDiaries = (req, res) => {
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
         rejectReason: diary.rejectReason || ""
       }))
     });
@@ -175,7 +178,7 @@ export const getMyDiaries = (req, res) => {
 // 创建游记
 export const createDiary = (req, res) => {
   try {
-    const { title, content, location, images = [], videos = [] } = req.body;
+    const { title, content, location, images = [], videos = [],video = ''} = req.body;
     const userId = req.user.id; // 从认证中获取用户ID
     const authorNickname = req.user.nickname || "用户";
     
@@ -200,6 +203,7 @@ export const createDiary = (req, res) => {
       location: location || "",
       images,
       videos,
+      video: video || (Array.isArray(videos) && videos.length > 0 ? videos[0] : ''),
       status: 'pending', // 默认为待审核状态
       createTime: new Date().toISOString(),
       updateTime: new Date().toISOString(),
@@ -241,7 +245,7 @@ export const updateDiary = (req, res) => {
   try {
     const { id } = req.params;
     const { id: userId } = req.user;
-    const { title, content, location, images, videos } = req.body;
+    const { title, content, location, images, videos,video } = req.body;
 
     const diaries = readDiaries();
     const diaryIndex = diaries.findIndex(d => d.id === id);
@@ -269,6 +273,7 @@ export const updateDiary = (req, res) => {
       location: location || diaries[diaryIndex].location,
       images: images || diaries[diaryIndex].images,
       videos: videos || diaries[diaryIndex].videos,
+      video: video || (Array.isArray(videos) && videos.length > 0 ? videos[0] : ''),
       status: 'pending', // 修改后需要重新审核
       updateTime: new Date().toISOString()
     };

@@ -8,6 +8,8 @@ import userRoutes from './routes/user.js';
 import diaryRoutes from './routes/diary.js';
 import uploadRoutes from './routes/upload.js';
 import adminRoutes from './routes/admin.js';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 
@@ -57,6 +59,28 @@ app.use('/api/upload', uploadRoutes);
 
 // 添加管理员路由
 app.use('/api/admin', adminRoutes);
+
+// Swagger 配置
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: '旅行日记平台 API 文档',
+      version: '1.0.0',
+      description: '旅行日记平台后端 API 接口文档',
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000',
+        description: '开发服务器',
+      },
+    ],
+  },
+  apis: ['./routes/*.js', './controllers/*.js'], // API 文件路径
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res) => {
   console.log('404 Not Found:', req.method, req.url);
