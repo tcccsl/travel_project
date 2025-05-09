@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const diariesFilePath = path.join(__dirname, '../data/diaries.json');
+const usersFilePath = path.join(__dirname, '../models/users.json');
 
 // 确保数据目录和文件存在
 const dataDir = path.join(__dirname, '../data');
@@ -14,6 +15,16 @@ if (!fs.existsSync(dataDir)) {
 if (!fs.existsSync(diariesFilePath)) {
   fs.writeFileSync(diariesFilePath, '[]', 'utf8');
 }
+
+// 读取用户数据
+const readUsers = () => {
+  try {
+    const data = fs.readFileSync(usersFilePath, 'utf-8');
+    return JSON.parse(data);
+  } catch (error) {
+    return [];
+  }
+};
 
 // 读取游记数据
 const readDiaries = () => {
@@ -53,6 +64,17 @@ export const getDiaries = (req, res) => {
     const endIndex = page * limit;
     const paginatedDiaries = filteredDiaries.slice(startIndex, endIndex);
 
+    // 获取所有相关用户的昵称
+    const users = readUsers();
+    const userIds = [...new Set(paginatedDiaries.map(diary => diary.userId))];
+    const userNicknames = {};
+    userIds.forEach(userId => {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        userNicknames[userId] = user.nickname;
+      }
+    });
+
     res.json({
       code: 200,
       msg: "获取成功",
@@ -62,13 +84,13 @@ export const getDiaries = (req, res) => {
         content: diary.content,
         location: diary.location || "",
         authorId: diary.userId,
-        authorNickname: diary.authorNickname || "用户",
+        authorNickname: userNicknames[diary.userId] || "用户",
         createTime: diary.createTime,
         updateTime: diary.updateTime,
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
-        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''),
         rejectReason: diary.rejectReason || ""
       }))
     });
@@ -96,6 +118,11 @@ export const getDiaryById = (req, res) => {
       });
     }
 
+    // 获取作者昵称
+    const users = readUsers();
+    const user = users.find(u => u.id === diary.userId);
+    const authorNickname = user ? user.nickname : "用户";
+
     res.json({
       code: 200,
       msg: "获取成功",
@@ -105,13 +132,13 @@ export const getDiaryById = (req, res) => {
         content: diary.content,
         location: diary.location || "",
         authorId: diary.userId,
-        authorNickname: diary.authorNickname || "用户",
+        authorNickname: authorNickname,
         createTime: diary.createTime,
         updateTime: diary.updateTime,
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
-        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''),
         rejectReason: diary.rejectReason || ""
       }
     });
@@ -145,6 +172,11 @@ export const getMyDiaries = (req, res) => {
     const startIndex = (parseInt(page) - 1) * parseInt(limit);
     const endIndex = parseInt(page) * parseInt(limit);
     const paginatedDiaries = myDiaries.slice(startIndex, endIndex);
+
+    // 获取用户昵称
+    const users = readUsers();
+    const user = users.find(u => u.id === userId);
+    const authorNickname = user ? user.nickname : "用户";
     
     res.json({
       code: 200,
@@ -155,13 +187,13 @@ export const getMyDiaries = (req, res) => {
         content: diary.content,
         location: diary.location || "",
         authorId: diary.userId,
-        authorNickname: diary.authorNickname || "用户",
+        authorNickname: authorNickname,
         createTime: diary.createTime,
         updateTime: diary.updateTime,
         status: diary.status,
         images: diary.images || [],
         videos: diary.videos || [],
-        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''), // 新增
+        video: diary.video || (Array.isArray(diary.videos) && diary.videos.length > 0 ? diary.videos[0] : ''),
         rejectReason: diary.rejectReason || ""
       }))
     });
@@ -180,9 +212,10 @@ export const createDiary = (req, res) => {
   try {
     const { title, content, location, images = [], videos = [],video = ''} = req.body;
     const userId = req.user.id; // 从认证中获取用户ID
-    const authorNickname = req.user.nickname || "用户";
+    const authorNickname = req.user.nickname; // 从 token 中获取用户注册时的 nickname
     
     console.log("创建游记的用户ID:", userId);
+    console.log("用户昵称:", authorNickname);
 
     // 验证必填字段
     if (!title || !content) {
@@ -197,7 +230,7 @@ export const createDiary = (req, res) => {
     const diary = {
       id: Date.now().toString(),
       userId: String(userId),
-      authorNickname,
+      authorNickname: authorNickname,
       title,
       content,
       location: location || "",

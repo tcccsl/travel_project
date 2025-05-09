@@ -26,9 +26,9 @@ const writeUsers = (users) => {
   fs.writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
 };
 
-const generateToken = (userId, username) => {
+const generateToken = (userId, username, nickname) => {
   return jwt.sign(
-    { id: userId, username },
+    { id: userId, username, nickname },
     process.env.JWT_SECRET || 'secret123',
     { expiresIn: '7d' }
   );
@@ -72,7 +72,7 @@ export const register = async (req, res) => {
     writeUsers(users);
 
     // 生成 token
-    const token = generateToken(userId, username);
+    const token = generateToken(userId, username, nickname);
 
     res.status(201).json({
       message: '注册成功',
@@ -105,7 +105,7 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: '用户名或密码错误' });
     }
 
-    const token = generateToken(user.id, username);
+    const token = generateToken(user.id, username, user.nickname);
 
     res.json({
       message: '登录成功',

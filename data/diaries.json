@@ -470,9 +470,26 @@
     ],
     "videos": [],
     "video": "http://localhost:3000/uploads/1746710898549-525870709.mp4",
-    "status": "pending",
+    "status": "approved",
     "createTime": "2025-05-08T13:28:22.158Z",
-    "updateTime": "2025-05-08T13:28:22.158Z",
+    "updateTime": "2025-05-09T14:11:40.214Z",
+    "rejectReason": ""
+  },
+  {
+    "id": "1746800683906",
+    "userId": "1746800179562",
+    "authorNickname": "用户",
+    "title": "你好",
+    "content": "这是测试",
+    "location": "",
+    "images": [
+      "http://localhost:3000/uploads/1746800682649-71121341.png"
+    ],
+    "videos": [],
+    "video": "",
+    "status": "approved",
+    "createTime": "2025-05-09T14:24:43.906Z",
+    "updateTime": "2025-05-09T14:24:53.250Z",
     "rejectReason": ""
   }
 ]
