@@ -92,7 +92,7 @@ export default {
       loginKey: 'remembered_username'
     }
   },
-  onLoad() {
+  onLoad(options) {
     // Check if already logged in
     const userStore = useUserStore();
     if (userStore.isAuthenticated) {
@@ -104,6 +104,11 @@ export default {
     
     // Load remembered username
     this.loadRememberedUsername();
+    
+    // 如果URL中包含username参数，则设置到表单中
+    if (options.username) {
+      this.formData.username = decodeURIComponent(options.username);
+    }
   },
   methods: {
     // Validate form

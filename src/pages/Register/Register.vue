@@ -285,64 +285,67 @@ export default {
       return isValid;
     },
     
-    // Handle form submit
+    // Handle form submission
     async handleSubmit() {
-      if (this.loading) return;
-      
+      // 表单验证
       if (!this.validateForm()) {
         return;
       }
       
       this.loading = true;
       
-      // 获取用户存储实例
-      const userStore = useUserStore();
-      
       try {
-        // 注册新用户
-        const registerResponse = await api.users.register({
+        const response = await api.users.register({
           username: this.formData.username,
           password: this.formData.password,
           nickname: this.formData.nickname,
-          avatar: this.formData.avatar || '/static/default-avatar.png'
+          avatar: this.formData.avatar
         });
         
-        // 注册成功后自动登录
-        await userStore.login({
-          username: this.formData.username,
-          password: this.formData.password
-        });
-        
-        // 显示成功提示
-        uni.showToast({
-          title: '注册成功',
-          icon: 'success',
-          duration: 1500
-        });
-        
-        // 导航到首页
-        setTimeout(() => {
-          uni.reLaunch({
-            url: '/pages/Home/Home'
+        // 处理响应
+        if (response && response.data) {
+          if (response.data.code === 400) {
+            // 处理特定错误
+            if (response.data.msg === '昵称已被使用') {
+              this.errors.nickname = '该昵称已被使用';
+              uni.showToast({
+                title: '该昵称已被使用，请更换',
+                icon: 'none'
+              });
+              return;
+            }
+            // 其他错误
+            uni.showToast({
+              title: response.data.msg || '注册失败',
+              icon: 'none'
+            });
+            return;
+          }
+          
+          // 注册成功
+          uni.showToast({
+            title: '注册成功',
+            icon: 'success'
           });
-        }, 1500);
+          
+          // 延迟跳转到登录页，并传递用户名
+          setTimeout(() => {
+            uni.redirectTo({
+              url: `/pages/Login/Login?username=${encodeURIComponent(this.formData.username)}`
+            });
+          }, 1500);
+        }
       } catch (error) {
-        console.error('Registration error:', error);
-        
-        // 处理不同的错误情况
-        if (error.response?.status === 409) {
+        console.error('注册失败:', error);
+        if (error.response?.data?.msg === '昵称已被使用') {
+          this.errors.nickname = '该昵称已被使用';
           uni.showToast({
-            title: '用户名或昵称已存在',
-            icon: 'none'
-          });
-        } else if (error.message === 'Network Error') {
-          uni.showToast({
-            title: '请检查网络连接',
+            title: '该昵称已被使用，请更换',
             icon: 'none'
           });
         } else {
           uni.showToast({
-            title: error.response?.data?.message || '注册失败，请重试',
+            title: error.response?.data?.msg || '注册失败，请重试',
             icon: 'none'
           });
         }
