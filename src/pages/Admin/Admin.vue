@@ -90,6 +90,37 @@
         <view class="loading-state" v-if="loading">
           <text class="loading-text">加载中...</text>
         </view>
+        
+        <!-- Pagination -->
+        <view class="pagination" v-if="totalPages > 1">
+          <view class="pagination-item" @click="changePage(1)" :class="{ disabled: page === 1 }">
+            <text class="pagination-text">首页</text>
+          </view>
+          <view class="pagination-item" @click="changePage(page - 1)" :class="{ disabled: page === 1 }">
+            <text class="pagination-text">上一页</text>
+          </view>
+          
+          <view 
+            v-for="p in pageRange" 
+            :key="p"
+            class="pagination-item"
+            :class="{ active: p === page }"
+            @click="changePage(p)"
+          >
+            <text class="pagination-text">{{ p }}</text>
+          </view>
+          
+          <view class="pagination-item" @click="changePage(page + 1)" :class="{ disabled: page === totalPages }">
+            <text class="pagination-text">下一页</text>
+          </view>
+          <view class="pagination-item" @click="changePage(totalPages)" :class="{ disabled: page === totalPages }">
+            <text class="pagination-text">末页</text>
+          </view>
+          
+          <view class="pagination-info">
+            <text class="pagination-text">第 {{ page }}/{{ totalPages }} 页</text>
+          </view>
+        </view>
       </view>
     </view>
     
@@ -120,6 +151,10 @@ export default {
       filter: '',
       selectedDiaryId: null,
       rejectReason: '',
+      page: 1,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
       
       filterOptions: [
         { text: '全部', value: '' },
@@ -133,6 +168,22 @@ export default {
   computed: {
     adminStore() {
       return useAdminStore();
+    },
+    // 计算页码范围
+    pageRange() {
+      const range = [];
+      const maxPages = 5; // 最多显示5个页码
+      let start = Math.max(1, this.page - Math.floor(maxPages / 2));
+      let end = Math.min(this.totalPages, start + maxPages - 1);
+      
+      if (end - start + 1 < maxPages) {
+        start = Math.max(1, end - maxPages + 1);
+      }
+      
+      for (let i = start; i <= end; i++) {
+        range.push(i);
+      }
+      return range;
     }
   },
   onLoad(options) {
@@ -184,12 +235,31 @@ export default {
       
       try {
         const response = await api.admin.getDiaries({
-          status: this.filter
+          status: this.filter,
+          page: this.page,
+          limit: this.limit
         });
         
-        this.diaries = response.data || [];
+        // 处理响应数据
+        if (response && response.code === 200 && response.data) {
+          // 管理员页面格式: { code: 200, msg: "获取成功", data: { total: 15, list: [...] } }
+          if (response.data.list && Array.isArray(response.data.list)) {
+            this.diaries = response.data.list;
+            this.total = response.data.total || 0;
+            this.totalPages = Math.ceil(this.total / this.limit);
+          } else {
+            // 降级处理
+            this.diaries = Array.isArray(response.data) ? response.data : [];
+            this.total = 0;
+            this.totalPages = 0;
+          }
+        } else {
+          this.diaries = [];
+          this.total = 0;
+          this.totalPages = 0;
+        }
       } catch (error) {
-        this.error = error.message || 'Failed to fetch diaries';
+        this.error = error.message || '获取游记失败';
         uni.showToast({
           title: '获取游记失败，请重试',
           icon: 'none'
@@ -199,9 +269,17 @@ export default {
       }
     },
     
+    // 切换页码
+    changePage(page) {
+      if (page < 1 || page > this.totalPages || page === this.page) return;
+      this.page = page;
+      this.fetchDiaries();
+    },
+    
     // Apply filter
     filterDiaries(e) {
       this.filter = e;
+      this.page = 1; // 重置页码
       this.saveFilterState();
       this.fetchDiaries();
     },
@@ -575,6 +653,85 @@ export default {
   color: #909399;
 }
 
+.load-more, .no-more {
+  text-align: center;
+  padding: 20rpx 0;
+  margin-top: 20rpx;
+}
+
+.load-more-text {
+  color: #13547a;
+  font-size: 28rpx;
+  padding: 10rpx 30rpx;
+  border: 1px solid #13547a;
+  border-radius: 30rpx;
+  display: inline-block;
+}
+
+.load-more-text:active {
+  background-color: rgba(19, 84, 122, 0.1);
+}
+
+.no-more-text {
+  color: #999;
+  font-size: 26rpx;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20rpx 0;
+  margin-top: 20rpx;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.pagination-item {
+  min-width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20rpx;
+  border: 1px solid #13547a;
+  border-radius: 6rpx;
+  margin: 0 5rpx;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.pagination-item:active {
+  background-color: rgba(19, 84, 122, 0.1);
+}
+
+.pagination-item.active {
+  background-color: #13547a;
+}
+
+.pagination-item.active .pagination-text {
+  color: white;
+}
+
+.pagination-item.disabled {
+  border-color: #ccc;
+  cursor: not-allowed;
+}
+
+.pagination-item.disabled .pagination-text {
+  color: #ccc;
+}
+
+.pagination-text {
+  font-size: 26rpx;
+  color: #13547a;
+}
+
+.pagination-info {
+  margin-left: 20rpx;
+  color: #666;
+}
+
 /* PC 端适配 */
 @media screen and (min-width: 992px) {
   .container {
@@ -597,6 +754,25 @@ export default {
   .action-btn {
     font-size: 14px;
     padding: 8px 15px;
+  }
+  
+  .load-more-text {
+    font-size: 14px;
+    padding: 8px 20px;
+  }
+  
+  .no-more-text {
+    font-size: 14px;
+  }
+  
+  .pagination-item {
+    min-width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .pagination-text {
+    font-size: 14px;
   }
 }
 </style> 

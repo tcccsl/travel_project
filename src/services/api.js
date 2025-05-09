@@ -78,7 +78,7 @@ export default {
   // Diary related endpoints
   diaries: {
     getAll(params = {}) {
-      return apiClient.get('/diaries', { 
+      return apiClient.get('/api/diaries', { 
         params: {
           page: params.page || 1,
           limit: params.limit || 10,
@@ -202,6 +202,25 @@ export default {
           limit: params.limit || 10,
           status: params.status || ''
         }
+      }).then(response => {
+        // 处理响应格式
+        if (response.data && typeof response.data === 'object') {
+          // 标准格式: { code: 200, msg: "获取成功", data: { total: 15, list: [...] } }
+          if (response.data.code !== undefined) {
+            return response.data;
+          }
+          
+          // 直接返回数据格式，需要封装
+          return {
+            code: 200,
+            msg: "获取成功",
+            data: response.data
+          };
+        }
+        
+        return response;
+      }).catch(error => {
+        throw error;
       });
     },
     // 获取单个游记详情（管理员视图）

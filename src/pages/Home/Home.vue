@@ -20,25 +20,27 @@
     <!-- Diary List -->
     <view class="content">
       <!-- Waterfall Layout -->
-      <view class="waterfall" v-if="diaries.length > 0">
+      <view class="waterfall" v-if="diaries && diaries.length > 0">
         <view class="waterfall-column">
           <diary-card 
             v-for="diary in leftDiaries" 
             :key="diary.id" 
-            :diary="diary" 
+            :diary="diary"
+            @click="viewDiary(diary.id)"
           />
         </view>
         <view class="waterfall-column">
           <diary-card 
             v-for="diary in rightDiaries" 
             :key="diary.id" 
-            :diary="diary" 
+            :diary="diary"
+            @click="viewDiary(diary.id)"
           />
         </view>
       </view>
       
       <!-- Empty State -->
-      <view class="empty-state" v-if="!loading && diaries.length === 0">
+      <view class="empty-state" v-if="!loading && (!diaries || diaries.length === 0)">
         <image class="empty-image" src="/static/empty-state.png" mode="aspectFit"></image>
         <text class="empty-text">暂无游记</text>
       </view>
@@ -54,7 +56,7 @@
       </view>
       
       <!-- No More Data -->
-      <view class="no-more" v-if="!hasMore && diaries.length > 0">
+      <view class="no-more" v-if="!hasMore && diaries && diaries.length > 0">
         <text class="no-more-text">没有更多数据了</text>
       </view>
     </view>
@@ -139,10 +141,8 @@ export default {
     
     // Fetch diaries from API
     async fetchDiaries() {
-      if (this.loading) return;
-      
       this.loading = true;
-
+      
       try {
         const response = await api.diaries.getAll({
           page: this.page,
@@ -150,29 +150,41 @@ export default {
           keyword: this.keyword || undefined
         });
         
-        const data = response.data || {};
-        const items = data.items || [];
+        console.log('API Response:', response);
         
-        if (this.page === 1) {
-          this.diaries = items;
+        // 处理响应数据
+        if (response && response.data && response.data.code === 200 && response.data.data) {
+          const items = Array.isArray(response.data.data) ? response.data.data : [];
+          console.log('Processed items:', items);
+          
+          if (this.page === 1) {
+            this.diaries = items;
+          } else {
+            this.diaries = [...this.diaries, ...items];
+          }
+          
+          console.log('Updated diaries:', this.diaries);
+          
+          // 检查是否还有更多数据
+          this.hasMore = items.length === this.limit;
+          
+          // 缓存数据
+          this.cacheData();
         } else {
-          this.diaries = [...this.diaries, ...items];
+          console.log('No valid data in response');
+          this.diaries = [];
+          this.hasMore = false;
         }
-        
-        // Check if has more data
-        this.hasMore = items.length === this.limit;
-        
-        // Cache data
-        this.cacheData();
       } catch (error) {
-        this.error = error.message || 'Network error';
+        console.error('Error fetching diaries:', error);
+        this.error = error.message || '获取游记失败';
         uni.showToast({
-          title: '网络错误，请重试',
+          title: '获取游记失败，请重试',
           icon: 'none'
         });
       } finally {
         this.loading = false;
-        // Stop pull down refresh if active
+        // 停止下拉刷新
         uni.stopPullDownRefresh();
       }
     },
@@ -230,6 +242,11 @@ export default {
       } catch (e) {
         console.error('Failed to cache home data:', e);
       }
+    },
+
+    viewDiary(id) {
+      // Implement the logic to view a diary
+      console.log(`Viewing diary with id: ${id}`);
     }
   }
 }
