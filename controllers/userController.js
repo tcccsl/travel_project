@@ -34,6 +34,39 @@ const generateToken = (userId, username, nickname) => {
   );
 };
 
+// 检查昵称是否可用
+export const checkNickname = (req, res) => {
+  try {
+    const { nickname } = req.query;
+
+    if (!nickname) {
+      return res.status(400).json({
+        code: 400,
+        msg: '昵称不能为空',
+        data: null
+      });
+    }
+
+    const users = readUsers();
+    const isNicknameExists = users.some(user => user.nickname === nickname);
+
+    res.json({
+      code: 200,
+      msg: isNicknameExists ? '昵称已被使用' : '昵称可用',
+      data: {
+        available: !isNicknameExists
+      }
+    });
+  } catch (error) {
+    console.error('检查昵称错误:', error);
+    res.status(500).json({
+      code: 500,
+      msg: '服务器错误',
+      data: null
+    });
+  }
+};
+
 export const register = async (req, res) => {
   try {
     const { username, password, nickname, avatar } = req.body;
@@ -41,7 +74,9 @@ export const register = async (req, res) => {
     // 验证必填字段
     if (!username || !password || !nickname) {
       return res.status(400).json({
-        message: '用户名、密码和昵称为必填项'
+        code: 400,
+        msg: '用户名、密码和昵称为必填项',
+        data: null
       });
     }
 
@@ -49,7 +84,20 @@ export const register = async (req, res) => {
 
     // 检查用户名是否已存在
     if (users.find(user => user.username === username)) {
-      return res.status(400).json({ message: '用户名已存在' });
+      return res.status(400).json({
+        code: 400,
+        msg: '用户名已存在',
+        data: null
+      });
+    }
+
+    // 检查昵称是否已存在
+    if (users.find(user => user.nickname === nickname)) {
+      return res.status(400).json({
+        code: 400,
+        msg: '昵称已被使用',
+        data: null
+      });
     }
 
     // 生成用户ID
@@ -75,7 +123,8 @@ export const register = async (req, res) => {
     const token = generateToken(userId, username, nickname);
 
     res.status(201).json({
-      message: '注册成功',
+      code: 200,
+      msg: '注册成功',
       token,
       user: {
         id: userId,
@@ -86,7 +135,11 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error('注册错误:', error);
-    res.status(500).json({ message: '服务器错误' });
+    res.status(500).json({
+      code: 500,
+      msg: '服务器错误',
+      data: null
+    });
   }
 };
 

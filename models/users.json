@@ -70,5 +70,29 @@
     "nickname": "kami",
     "avatar": "/static/default-avatar.png",
     "createdAt": "2025-05-09T14:29:11.812Z"
+  },
+  {
+    "id": "1746801548783",
+    "username": "13965654878",
+    "password": "$2b$10$Fmdc1u3QuJplLvDhmxw0ru42vsLUIiwwTxYaBURwo8WjSUVff6yj2",
+    "nickname": "kamiaa",
+    "avatar": null,
+    "createdAt": "2025-05-09T14:39:08.839Z"
+  },
+  {
+    "id": "1746801609636",
+    "username": "13547547457",
+    "password": "$2b$10$RocW7u1ST79FTzj578ACw.ABOHngMtWeziskQ9JngqJJolL8HJ0IK",
+    "nickname": "123aaa",
+    "avatar": null,
+    "createdAt": "2025-05-09T14:40:09.693Z"
+  },
+  {
+    "id": "1746801795558",
+    "username": "13678784587",
+    "password": "$2b$10$u/xeS22nSh4ssX.IDB8aNuqstrRI2Q00ID9OQ95.GIIw8NAH4mCbW",
+    "nickname": "abcaa",
+    "avatar": null,
+    "createdAt": "2025-05-09T14:43:15.614Z"
   }
 ]
