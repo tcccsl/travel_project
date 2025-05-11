@@ -147,7 +147,7 @@ export default {
     },
     // Delete diary (admin only - logical delete)
     adminDelete(id) {
-      return apiClient.delete(`/api/diary/${id}/delete`);
+      return apiClient.delete(`/api/admin/diary/${id}/delete`);
     }
   },
   
