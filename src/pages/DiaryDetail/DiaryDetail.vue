@@ -364,7 +364,16 @@ export default {
     
     // Go back to previous page
     goBack() {
-      uni.navigateBack();
+      const pages = getCurrentPages();
+      if (pages.length > 1) {
+        // 如果页面栈中有多个页面，使用navigateBack
+        uni.navigateBack();
+      } else {
+        // 如果页面栈中只有一个页面（当前页面），则跳转到首页
+        uni.switchTab({
+          url: '/pages/Home/Home'
+        });
+      }
     },
     
     // Handle image error
