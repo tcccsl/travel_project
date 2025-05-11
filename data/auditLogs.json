@@ -78,5 +78,13 @@
     "action": "approved",
     "reason": "",
     "createTime": "2025-05-10T15:16:11.500Z"
+  },
+  {
+    "id": "1746935094342",
+    "noteId": "1746881554931",
+    "auditorId": "admin",
+    "action": "deleted",
+    "reason": "管理员删除",
+    "createTime": "2025-05-11T03:44:54.342Z"
   }
 ]

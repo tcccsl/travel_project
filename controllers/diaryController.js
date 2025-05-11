@@ -51,29 +51,28 @@ export const getDiaries = (req, res) => {
   try {
     const { page = 1, limit = 10, keyword = '' } = req.query;
     const diaries = readDiaries();
+    const users = readUsers();
+    
+    // 创建用户ID到昵称的映射
+    const userNicknames = {};
+    users.forEach(user => {
+      userNicknames[user.id] = user.nickname;
+    });
     
     let filteredDiaries = diaries
       .filter(diary => diary.status === 'approved') // 只返回审核通过的
-      .filter(diary => 
-        diary.title.toLowerCase().includes(keyword.toLowerCase()) || 
-        diary.content.toLowerCase().includes(keyword.toLowerCase())
-      )
+      .filter(diary => {
+        const keywordLower = keyword.toLowerCase();
+        const authorNickname = userNicknames[diary.userId] || "用户";
+        return diary.title.toLowerCase().includes(keywordLower) || 
+               diary.content.toLowerCase().includes(keywordLower) ||
+               authorNickname.toLowerCase().includes(keywordLower);
+      })
       .sort((a, b) => new Date(b.createTime) - new Date(a.createTime)); // 按创建时间倒序排序
 
     const startIndex = (page - 1) * limit;
     const endIndex = page * limit;
     const paginatedDiaries = filteredDiaries.slice(startIndex, endIndex);
-
-    // 获取所有相关用户的昵称
-    const users = readUsers();
-    const userIds = [...new Set(paginatedDiaries.map(diary => diary.userId))];
-    const userNicknames = {};
-    userIds.forEach(userId => {
-      const user = users.find(u => u.id === userId);
-      if (user) {
-        userNicknames[userId] = user.nickname;
-      }
-    });
 
     res.json({
       code: 200,

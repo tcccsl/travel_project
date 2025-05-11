@@ -425,22 +425,5 @@
     "createTime": "2025-05-08T13:08:08.983Z",
     "updateTime": "2025-05-10T15:16:11.494Z",
     "rejectReason": ""
-  },
-  {
-    "id": "1746881554931",
-    "userId": "1746881291486",
-    "authorNickname": "xiaob",
-    "title": "222",
-    "content": "喂喂喂，123，喂喂喂，123",
-    "location": "",
-    "images": [
-      "http://localhost:3000/uploads/1746881540820-39610530.jpg"
-    ],
-    "videos": [],
-    "video": "http://localhost:3000/uploads/1746881549222-793337843.mp4",
-    "status": "approved",
-    "createTime": "2025-05-10T12:52:34.931Z",
-    "updateTime": "2025-05-10T15:16:08.645Z",
-    "rejectReason": ""
   }
 ]
