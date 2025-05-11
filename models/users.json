@@ -94,5 +94,13 @@
     "nickname": "abcaa",
     "avatar": null,
     "createdAt": "2025-05-09T14:43:15.614Z"
+  },
+  {
+    "id": "1746881291486",
+    "username": "19822222222",
+    "password": "$2b$10$4Wx1OsHsIkfkAMnYelvQ0euvobuwNmANNB5w4QoiG9vYzYOHryijq",
+    "nickname": "xiaob",
+    "avatar": "http://localhost:3000/uploads/1746881245521-764316135.jpg",
+    "createdAt": "2025-05-10T12:48:11.560Z"
   }
 ]

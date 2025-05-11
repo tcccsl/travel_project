@@ -128,22 +128,6 @@
     "rejectReason": ""
   },
   {
-    "id": "1746383762456",
-    "userId": "1746345764467",
-    "authorNickname": "用户2",
-    "title": "test",
-    "content": "123",
-    "location": "南京",
-    "images": [
-      "http://localhost:3000/uploads/1746383745875-254963806.jpg"
-    ],
-    "videos": [],
-    "status": "rejected",
-    "createTime": "2025-05-04T18:36:02.456Z",
-    "updateTime": "2025-05-04T18:36:02.457Z",
-    "rejectReason": "内容不符合规范"
-  },
-  {
     "id": "1746384406141",
     "userId": "1746345764467",
     "authorNickname": "用户3",
@@ -225,22 +209,6 @@
     "createTime": "2025-05-06T07:25:35.860Z",
     "updateTime": "2025-05-06T08:38:55.766Z",
     "rejectReason": ""
-  },
-  {
-    "id": "1746520021265",
-    "userId": "1746515448620",
-    "authorNickname": "用户",
-    "title": "你好",
-    "content": "12",
-    "location": "",
-    "images": [
-      "http://localhost:3000/uploads/1746520052607-435015077.jpg"
-    ],
-    "videos": [],
-    "status": "rejected",
-    "createTime": "2025-05-06T08:27:01.265Z",
-    "updateTime": "2025-05-06T08:38:21.824Z",
-    "rejectReason": "11"
   },
   {
     "id": "1746595606351",
@@ -453,43 +421,26 @@
       "http://localhost:3000/uploads/1746709640055-435574877.jpg"
     ],
     "videos": [],
-    "status": "pending",
+    "status": "approved",
     "createTime": "2025-05-08T13:08:08.983Z",
-    "updateTime": "2025-05-08T13:08:08.983Z",
+    "updateTime": "2025-05-10T15:16:11.494Z",
     "rejectReason": ""
   },
   {
-    "id": "1746710902158",
-    "userId": "1746595568714",
-    "authorNickname": "用户",
-    "title": "1234",
-    "content": "1234",
+    "id": "1746881554931",
+    "userId": "1746881291486",
+    "authorNickname": "xiaob",
+    "title": "222",
+    "content": "喂喂喂，123，喂喂喂，123",
     "location": "",
     "images": [
-      "http://localhost:3000/uploads/1746710892683-5708334.jpg"
+      "http://localhost:3000/uploads/1746881540820-39610530.jpg"
     ],
     "videos": [],
-    "video": "http://localhost:3000/uploads/1746710898549-525870709.mp4",
+    "video": "http://localhost:3000/uploads/1746881549222-793337843.mp4",
     "status": "approved",
-    "createTime": "2025-05-08T13:28:22.158Z",
-    "updateTime": "2025-05-09T14:11:40.214Z",
-    "rejectReason": ""
-  },
-  {
-    "id": "1746800683906",
-    "userId": "1746800179562",
-    "authorNickname": "用户",
-    "title": "你好",
-    "content": "这是测试",
-    "location": "",
-    "images": [
-      "http://localhost:3000/uploads/1746800682649-71121341.png"
-    ],
-    "videos": [],
-    "video": "",
-    "status": "approved",
-    "createTime": "2025-05-09T14:24:43.906Z",
-    "updateTime": "2025-05-09T14:24:53.250Z",
+    "createTime": "2025-05-10T12:52:34.931Z",
+    "updateTime": "2025-05-10T15:16:08.645Z",
     "rejectReason": ""
   }
 ]
