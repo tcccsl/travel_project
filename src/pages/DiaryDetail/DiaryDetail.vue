@@ -97,7 +97,7 @@
           </view>
           
           <view class="diary-content">
-            <rich-text :nodes="diary.content"></rich-text>
+            <rich-text :nodes="formattedContent"></rich-text>
           </view>
         </view>
         <!-- 视频展示区：如果有视频则显示 -->
@@ -152,6 +152,13 @@ export default {
       currentImageIndex: 0,
       showShareMenu: false,
       isAdmin: false
+    }
+  },
+  computed: {
+    formattedContent() {
+      if (!this.diary || !this.diary.content) return '';
+      // 将换行符转换为 <br> 标签
+      return this.diary.content.replace(/\n/g, '<br>');
     }
   },
   onLoad(options) {
