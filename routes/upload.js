@@ -16,6 +16,9 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 获取服务器地址，使用全局变量
+const getServerUrl = () => global.SERVER_URL || 'http://121.40.88.145:3000';
+
 // 配置文件存储
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -56,8 +59,8 @@ router.post('/image', auth, upload.single('file'), (req, res) => {
       });
     }
     
-    // 修改：返回完整的访问URL
-    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    // 修改：返回完整的访问URL，使用SERVER_URL
+    const fileUrl = `${getServerUrl()}/uploads/${req.file.filename}`;
     
     res.json({
       code: 200,
@@ -104,7 +107,7 @@ router.post('/video', auth, videoUpload.single('file'), (req, res) => {
         data: null
       });
     }
-    const fileUrl = `http://localhost:3000/uploads/${req.file.filename}`;
+    const fileUrl = `${getServerUrl()}/uploads/${req.file.filename}`;
     res.json({
       code: 200,
       msg: '上传成功',

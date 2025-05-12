@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 设置全局变量供其他模块使用
+global.SERVER_URL = process.env.SERVER_URL || 'http://121.40.88.145:3000';
+console.log(`服务器URL设置为: ${global.SERVER_URL}`);
+
 // 路由
 app.use('/api/admin', adminRoutes);
 
@@ -22,4 +26,5 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`对外访问地址: ${global.SERVER_URL}`);
 }); 

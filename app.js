@@ -16,11 +16,15 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 设置全局服务器URL
+global.SERVER_URL = process.env.SERVER_URL || 'http://121.40.88.145:3000';
+console.log(`服务器URL设置为: ${global.SERVER_URL}`);
+
 const app = express();
 
 // CORS 配置
 const corsOptions = {
-  origin: ['http://localhost:5173', 'http://192.168.5.43:5173','http://26.233.129.1118:5173'],
+  origin: ['http://localhost:5173', 'http://192.168.5.43:5173','http://26.233.129.1118:5173', 'http://121.40.88.145:5173'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Authorization'],
@@ -51,14 +55,32 @@ app.use('/auth', userRoutes);
 app.use('/', diaryRoutes);  // 支持 http://localhost:3000/diaries
 app.use('/api', diaryRoutes); // 支持 /api/diaries
 
-// 添加静态文件服务
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// 添加静态文件服务 - 确保可以通过服务器IP访问
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+  setHeaders: (res, path) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // 添加上传路由
 app.use('/api/upload', uploadRoutes);
 
 // 添加管理员路由
 app.use('/api/admin', adminRoutes);
+
+// 添加URL修复中间件 - 用于处理数据库中已存在的localhost URL
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(body) {
+    // 如果是JSON响应，尝试替换所有localhost URL
+    if (typeof body === 'string' && body.startsWith('{') && body.includes('localhost:3000')) {
+      body = body.replace(/http:\/\/localhost:3000/g, global.SERVER_URL);
+    }
+    return originalSend.call(this, body);
+  };
+  next();
+});
 
 // Swagger 配置
 const swaggerOptions = {
@@ -71,8 +93,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: '开发服务器',
+        url: global.SERVER_URL,
+        description: '服务器',
       },
     ],
   },
@@ -98,6 +120,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`服务器运行在 http://localhost:${PORT}`);
+  console.log(`对外访问地址: ${global.SERVER_URL}`);
 });
 
 export default app; 
