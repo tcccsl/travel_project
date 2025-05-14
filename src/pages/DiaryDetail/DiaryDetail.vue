@@ -184,26 +184,16 @@ export default {
     // Fetch diary detail from API
     async fetchDiaryDetail() {
       this.loading = true;
+      this.error = false;
       
       try {
-        let response;
-        if (this.isAdmin) {
-          // 如果是管理员，尝试使用管理员API获取游记
-          try {
-            response = await api.admin.getDiaryById(this.id);
-          } catch (adminError) {
-            response = await api.diaries.getById(this.id);
-          }
-        } else {
-          // 普通用户视图
-          response = await api.diaries.getById(this.id);
-        }
+        console.log('开始获取游记详情, ID:', this.id);
+        const response = await api.diaries.getById(this.id);
+        console.log('获取到游记详情响应:', response);
         
-        // 解析响应数据
         if (response && response.code === 200 && response.data) {
-          // 直接使用后端返回的数据
           this.diary = response.data;
-          console.log('diary detail:', this.diary);
+          console.log('设置游记数据:', this.diary);
           
           // 检查并调整游记数据
           if (!this.diary.createdAt && this.diary.createTime) {
@@ -219,13 +209,15 @@ export default {
           if (!this.diary.authorAvatar) {
             this.diary.authorAvatar = '/static/default-avatar.png';
           }
+          
+          // 缓存数据
+          this.cacheData();
         } else {
+          console.error('游记详情数据格式错误:', response);
           this.error = true;
         }
-        
-        // Cache the data
-        this.cacheData();
       } catch (error) {
+        console.error('获取游记详情失败:', error);
         this.error = true;
       } finally {
         this.loading = false;

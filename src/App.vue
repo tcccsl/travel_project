@@ -12,6 +12,9 @@ export default {
     
     // 监听 H5 路由变化
     this.setupH5RouteListener();
+    
+    // 初始化网络配置（特别是对Android设备）
+    this.initNetworkConfig();
   },
   onShow: function () {
     console.log('App Show');
@@ -58,6 +61,49 @@ export default {
         }
       });
       // #endif
+    },
+    
+    // 初始化网络配置
+    initNetworkConfig() {
+      // #ifdef APP-PLUS
+      if (uni.getSystemInfoSync().platform === 'android') {
+        console.log('当前是Android设备，正在配置网络安全策略');
+        
+        // 设置Android网络安全配置
+        plus.android.importClass("android.webkit.WebView");
+        plus.android.importClass("android.webkit.CookieManager");
+        
+        try {
+          // 开启WebView调试
+          if (plus.android.invoke('android.webkit.WebView', 'isDebuggable')) {
+            plus.android.invoke('android.webkit.WebView', 'setWebContentsDebuggingEnabled', true);
+            console.log('WebView调试已启用');
+          }
+          
+          // 允许明文HTTP请求
+          const cookieManager = plus.android.invoke("android.webkit.CookieManager", "getInstance");
+          if (cookieManager) {
+            cookieManager.setAcceptCookie(true);
+            cookieManager.setAcceptThirdPartyCookies(plus.android.currentWebview(), true);
+            console.log('Cookie配置完成');
+          }
+          
+          console.log('Android网络配置初始化完成');
+        } catch (e) {
+          console.error('Android网络配置错误：', e);
+        }
+      }
+      // #endif
+      
+      // 全局配置网络超时
+      uni.setNetworkTimeout({
+        request: 60000, // 请求超时时间，60秒
+        connectSocket: 60000, // WebSocket连接超时时间
+        uploadFile: 60000, // 上传超时时间
+        downloadFile: 60000 // 下载超时时间
+      });
+      
+      console.log('网络配置初始化完成');
     }
   }
 }

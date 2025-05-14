@@ -252,13 +252,27 @@ export default {
           
           if (index !== -1) {
             try {
-              // 统一参数组装
-              const params = getUploadParams(image.file, uni.getStorageSync('token'));
-              console.log('上传图片参数:', params);
-              const uploadResponse = await api.upload.image(params);
+              // 获取token
+              const token = uni.getStorageSync('token');
+              if (!token) {
+                console.error('未找到token');
+                throw new Error('请先登录');
+              }
 
-              if (uploadResponse && (uploadResponse.data || uploadResponse.url)) {
-                const imageUrl = uploadResponse.data ? uploadResponse.data.url : uploadResponse.url;
+              // 确保filePath是字符串
+              const filePath = image.file.path;
+              console.log('准备上传的文件路径:', filePath);
+
+              // 上传文件
+              const result = await api.upload.image({
+                filePath,
+                token
+              });
+
+              console.log('上传响应:', result);
+              
+              if (result && result.code === 200 && result.data && result.data.url) {
+                const imageUrl = result.data.url;
                 console.log('获取到的图片URL:', imageUrl);
                 
                 this.$set(this.imageList, index, {
@@ -270,18 +284,25 @@ export default {
                 console.log('图片状态更新完成，当前列表:', this.imageList);
                 this.emitChange();
               } else {
-                console.error('未获取到有效的图片URL:', uploadResponse);
+                console.error('未获取到有效的图片URL:', result);
                 throw new Error('未获取到有效的图片URL');
               }
             } catch (error) {
               console.error('上传过程出错:', error);
+              console.error('错误详情:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+              });
+              
               this.$set(this.imageList, index, {
                 ...this.imageList[index],
-                status: 'fail'
+                status: 'fail',
+                error: error.message
               });
               
               uni.showToast({
-                title: '图片上传失败',
+                title: error.message || '图片上传失败',
                 icon: 'none'
               });
             }

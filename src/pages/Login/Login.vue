@@ -62,6 +62,14 @@
           {{ loading ? '登录中...' : '登 录' }}
         </button>
         
+        <!-- Test Network Button (仅开发测试用) -->
+        <button 
+          class="test-button" 
+          @click="testNetworkConnection"
+        >
+          测试网络连接
+        </button>
+        
         <!-- Register Link -->
         <view class="register-link">
           <text class="link-text">没有账号？</text>
@@ -286,6 +294,121 @@ export default {
         animationType: 'slide-in-right',
         animationDuration: 300
       });
+    },
+    
+    // 测试网络连接
+    testNetworkConnection() {
+      uni.showLoading({
+        title: '测试中...',
+        mask: true
+      });
+      
+      console.log('开始测试网络连接...');
+      
+      // 获取系统信息
+      const sysInfo = uni.getSystemInfoSync();
+      console.log('设备信息:', sysInfo);
+      
+      // 获取网络状态
+      uni.getNetworkType({
+        success: (res) => {
+          console.log('网络状态:', res.networkType);
+        }
+      });
+      
+      // 测试方法1：使用uni.request
+      uni.request({
+        url: 'http://121.40.88.145:3000/api/diaries',
+        method: 'GET',
+        timeout: 10000,
+        success: (res) => {
+          console.log('uni.request测试成功:', res);
+          uni.showToast({
+            title: '连接成功!',
+            icon: 'success'
+          });
+        },
+        fail: (err) => {
+          console.error('uni.request测试失败:', err);
+          
+          // 显示错误信息
+          uni.showModal({
+            title: 'uni.request失败',
+            content: `错误: ${err.errMsg || '未知错误'}`,
+            showCancel: false
+          });
+          
+          // 测试方法2：使用XMLHttpRequest (仅在支持的平台)
+          console.log('尝试使用XMLHttpRequest...');
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', 'http://121.40.88.145:3000/api/diaries');
+          xhr.timeout = 10000;
+          
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              console.log('XMLHttpRequest测试成功:', xhr.responseText);
+              uni.showToast({
+                title: 'XMLHttpRequest成功!',
+                icon: 'success'
+              });
+            } else {
+              console.error('XMLHttpRequest失败, 状态码:', xhr.status);
+              uni.showToast({
+                title: 'XMLHttpRequest失败: ' + xhr.status,
+                icon: 'none'
+              });
+            }
+          };
+          
+          xhr.onerror = (e) => {
+            console.error('XMLHttpRequest错误:', e);
+            uni.showToast({
+              title: '所有测试都失败，请检查日志',
+              icon: 'none'
+            });
+          };
+          
+          xhr.ontimeout = () => {
+            console.error('XMLHttpRequest超时');
+          };
+          
+          try {
+            xhr.send();
+          } catch (e) {
+            console.error('XMLHttpRequest发送失败:', e);
+            
+            // 尝试测试方法3：使用fetch API (如果支持)
+            if (typeof fetch === 'function') {
+              console.log('尝试使用fetch API...');
+              fetch('http://121.40.88.145:3000/api/diaries', { 
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+              })
+              .then(response => {
+                console.log('fetch测试成功:', response);
+                return response.json();
+              })
+              .then(data => {
+                console.log('fetch数据:', data);
+                uni.showToast({
+                  title: 'fetch API成功!',
+                  icon: 'success'
+                });
+              })
+              .catch(error => {
+                console.error('fetch测试失败:', error);
+                uni.showToast({
+                  title: '所有连接方式都失败',
+                  icon: 'none'
+                });
+              });
+            }
+          }
+        },
+        complete: () => {
+          uni.hideLoading();
+        }
+      });
     }
   }
 }
@@ -433,6 +556,27 @@ export default {
 
 .login-button.loading {
   opacity: 0.8;
+}
+
+.test-button {
+  width: 100%;
+  height: 80rpx;
+  background-color: #ff9800;
+  color: white;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 40rpx;
+  box-shadow: 0 8rpx 20rpx rgba(255, 152, 0, 0.3);
+  margin-bottom: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.test-button:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 30rpx rgba(255, 152, 0, 0.5);
 }
 
 .register-link {
