@@ -3,6 +3,15 @@
 ## 项目简介
 这是一个基于 Node.js + Vue3 的旅游日记分享平台，包含移动端用户系统和 PC 端管理系统。用户可以发布、查看和分享旅游日记，管理员可以进行内容审核和管理。
 
+### 项目架构图
+```
+旅行日记平台
+├── 前端 (travl_1.0/frontend)
+│   └── 基于 uni-app 的跨平台应用
+└── 后端 (newback)
+    └── 基于 Node.js + Express 的服务器
+```
+
 ## 技术栈
 
 ### 前端技术栈
@@ -113,14 +122,87 @@ npm run build:app-android
 ### 后端部署
 1. 安装依赖
 ```bash
-cd newback
 npm install
 ```
 
-2. 启动服务
+2. 安装 PM2
 ```bash
-npm start
+npm install -g pm2
 ```
+
+3. 开发环境运行
+```bash
+npm run dev
+```
+
+4. 生产环境部署
+```bash
+# 使用 PM2 启动应用
+pm2 start app.js --name "travel-diary-server"
+
+# 其他常用 PM2 命令
+pm2 list                    # 查看所有应用
+pm2 stop travel-diary-server    # 停止应用
+pm2 restart travel-diary-server # 重启应用
+pm2 logs travel-diary-server    # 查看日志
+pm2 monit                  # 监控应用
+```
+
+5. PM2 配置文件 (ecosystem.config.js)
+```javascript
+module.exports = {
+  apps: [{
+    name: "travel-diary-server",
+    script: "app.js",
+    instances: "max",
+    exec_mode: "cluster",
+    watch: false,
+    max_memory_restart: "1G",
+    env: {
+      NODE_ENV: "production",
+      PORT: 3000
+    }
+  }]
+}
+```
+
+### PM2 部署特点与优势
+
+1. **高可用性**
+   - 进程守护：自动重启崩溃的应用
+   - 零停机重启：更新代码时无需停止服务
+   - 负载均衡：多实例部署，提高系统稳定性
+
+2. **性能优化**
+   - 集群模式：充分利用多核 CPU
+   - 内存管理：自动处理内存泄漏
+   - 负载均衡：智能分配请求到不同实例
+
+3. **运维便利**
+   - 日志管理：集中式日志收集
+   - 监控面板：实时监控应用状态
+   - 简单命令：便捷的进程管理命令
+
+4. **安全性**
+   - 进程隔离：实例间相互独立
+   - 错误隔离：单个实例崩溃不影响整体
+   - 资源限制：防止单个应用占用过多资源
+
+5. **开发友好**
+   - 开发模式：支持开发环境热重载
+   - 环境变量：灵活的环境配置
+   - 部署简单：一键部署和回滚
+
+6. **扩展性**
+   - 水平扩展：轻松添加新实例
+   - 垂直扩展：支持资源限制配置
+   - 集群管理：统一管理多个应用
+
+7. **监控告警**
+   - 性能监控：CPU、内存使用率
+   - 错误告警：异常情况实时通知
+   - 日志追踪：问题快速定位
+
 
 ## 项目特点
 1. 跨平台开发
